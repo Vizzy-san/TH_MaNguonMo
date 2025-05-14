@@ -3,6 +3,7 @@
 require_once('app/config/database.php');
 require_once('app/models/ProductModel.php');
 require_once('app/models/CategoryModel.php');
+require_once('app/share/SessionHelper.php');
 class ProductController
 {
 private $productModel;
@@ -13,6 +14,7 @@ public function __construct()
 {
 $this->db = (new Database())->getConnection();
 $this->productModel = new ProductModel($this->db);
+SessionHelper::init();
 
 // Create uploads directory if it doesn't exist
 if (!file_exists($this->upload_dir)) {
@@ -170,6 +172,148 @@ public function delete($id)
     } else {
         echo "Đã xảy ra lỗi khi xóa sản phẩm.";
     }
+}
+
+public function cart()
+{
+    $cart = SessionHelper::get('cart') ?: [];
+    include 'app/views/cart/cart.php';
+}
+
+public function addToCart($id)
+{
+    $product = $this->productModel->getProductById($id);
+    if (!$product) {
+        echo "Không tìm thấy sản phẩm.";
+        return;
+    }
+    
+    $cart = SessionHelper::get('cart') ?: [];
+    
+    if (isset($cart[$id])) {
+        $cart[$id]['quantity']++;
+    } else {
+        $cart[$id] = [
+            'name' => $product->name,
+            'price' => $product->price,
+            'quantity' => 1,
+            'image' => $product->image
+        ];
+    }
+    
+    SessionHelper::set('cart', $cart);
+    SessionHelper::set('cart_success', "Sản phẩm \"" . $product->name . "\" đã được thêm vào giỏ hàng thành công!");
+    
+    // Redirect back to the referring page instead of cart page
+    $referer = $_SERVER['HTTP_REFERER'] ?? '/project1/Product';
+    header('Location: ' . $referer);
+}
+
+public function removeFromCart($id)
+{
+    $cart = SessionHelper::get('cart') ?: [];
+    
+    if (isset($cart[$id])) {
+        $productName = $cart[$id]['name'];
+        unset($cart[$id]);
+        SessionHelper::set('cart', $cart);
+        SessionHelper::set('cart_success', "Sản phẩm \"" . $productName . "\" đã được xóa khỏi giỏ hàng!");
+    }
+    
+    header('Location: /project1/Product/cart');
+}
+
+public function updateCart()
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $cart = SessionHelper::get('cart') ?: [];
+        $quantities = $_POST['quantity'] ?? [];
+        
+        foreach ($quantities as $id => $quantity) {
+            if (isset($cart[$id])) {
+                $quantity = (int)$quantity;
+                if ($quantity > 0) {
+                    $cart[$id]['quantity'] = $quantity;
+                } else {
+                    unset($cart[$id]);
+                }
+            }
+        }
+        
+        SessionHelper::set('cart', $cart);
+        SessionHelper::set('cart_success', "Giỏ hàng đã được cập nhật thành công!");
+        header('Location: /project1/Product/cart');
+    }
+}
+
+public function checkout()
+{
+    $cart = SessionHelper::get('cart') ?: [];
+    if (empty($cart)) {
+        echo "Giỏ hàng trống.";
+        return;
+    }
+    
+    include 'app/views/cart/checkout.php';
+}
+
+public function processCheckout()
+{
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $name = $_POST['name'];
+        $phone = $_POST['phone'];
+        $address = $_POST['address'];
+        
+        // Kiểm tra giỏ hàng
+        $cart = SessionHelper::get('cart');
+        if (!$cart || empty($cart)) {
+            echo "Giỏ hàng trống.";
+            return;
+        }
+        
+        // Bắt đầu giao dịch
+        $this->db->beginTransaction();
+        
+        try {
+            // Lưu thông tin đơn hàng vào bảng orders
+            $query = "INSERT INTO orders (name, phone, address, created_at) VALUES (:name, :phone, :address, NOW())";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':phone', $phone);
+            $stmt->bindParam(':address', $address);
+            $stmt->execute();
+            $order_id = $this->db->lastInsertId();
+            
+            // Lưu chi tiết đơn hàng vào bảng order_details
+            foreach ($cart as $product_id => $item) {
+                $query = "INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (:order_id, :product_id, :quantity, :price)";
+                $stmt = $this->db->prepare($query);
+                $stmt->bindParam(':order_id', $order_id);
+                $stmt->bindParam(':product_id', $product_id);
+                $stmt->bindParam(':quantity', $item['quantity']);
+                $stmt->bindParam(':price', $item['price']);
+                $stmt->execute();
+            }
+            
+            // Xóa giỏ hàng sau khi đặt hàng thành công
+            SessionHelper::delete('cart');
+            
+            // Commit giao dịch
+            $this->db->commit();
+            
+            // Chuyển hướng đến trang xác nhận đơn hàng
+            header('Location: /project1/Product/orderConfirmation/' . $order_id);
+        } catch (Exception $e) {
+            // Rollback giao dịch nếu có lỗi
+            $this->db->rollBack();
+            echo "Đã xảy ra lỗi khi xử lý đơn hàng: " . $e->getMessage();
+        }
+    }
+}
+
+public function orderConfirmation($order_id = null)
+{
+    include 'app/views/cart/orderConfirmation.php';
 }
 
 }

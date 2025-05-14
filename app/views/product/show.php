@@ -30,6 +30,7 @@
         <?php endif; ?>
         
         <div class="mt-3">
+            <a href="/project1/Product/addToCart/<?php echo $product->id; ?>" class="btn btn-success">Thêm vào giỏ hàng</a>
             <a href="/project1/Product/edit/<?php echo $product->id; ?>" class="btn btn-warning">Sửa</a>
             <a href="/project1/Product/delete/<?php echo $product->id; ?>" class="btn btn-danger" 
                onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?');">Xóa</a>

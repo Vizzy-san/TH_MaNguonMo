@@ -1,6 +1,5 @@
 <?php include BASE_PATH . '/app/share/header.php'; ?>
 <h1>Danh sách sản phẩm</h1>
-<a href="/project1/Product/add" class="btn btn-success mb-2">Thêm sản phẩm mới</a>
 <div class="row">
 <?php foreach ($products as $product): ?>
     <div class="col-md-4 mb-4">
@@ -23,10 +22,15 @@
                 <p class="card-text"><?php echo mb_substr(htmlspecialchars($product->description, ENT_QUOTES, 'UTF-8'), 0, 100) . (mb_strlen($product->description) > 100 ? '...' : ''); ?></p>
                 <p class="card-text"><strong>Giá:</strong> <?php echo number_format($product->price, 0, ',', '.'); ?> VND</p>
             </div>
-            <div class="card-footer">
-                <a href="/project1/Product/edit/<?php echo $product->id; ?>" class="btn btn-warning btn-sm">Sửa</a>
-                <a href="/project1/Product/delete/<?php echo $product->id; ?>" class="btn btn-danger btn-sm" 
-                   onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?');">Xóa</a>
+            <div class="card-footer d-flex justify-content-between">
+                <div>
+                    <a href="/project1/Product/edit/<?php echo $product->id; ?>" class="btn btn-warning btn-sm">Sửa</a>
+                    <a href="/project1/Product/delete/<?php echo $product->id; ?>" class="btn btn-danger btn-sm" 
+                       onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?');">Xóa</a>
+                </div>
+                <a href="/project1/Product/addToCart/<?php echo $product->id; ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+                </a>
             </div>
         </div>
     </div>

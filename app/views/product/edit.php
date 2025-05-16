@@ -53,7 +53,7 @@
 <div class="input-group">
     <input type="file" id="image" name="image" class="form-control-file" accept="image/*" onchange="previewImage(this);">
 </div>
-<small class="form-text text-muted">Chọn file hình ảnh mới (JPG, PNG, GIF) hoặc để trống để giữ hình ảnh hiện tại</small>
+<small class="form-text text-muted">Chọn file hình ảnh mới (JPG, PNG, GIF, WebP) hoặc để trống để giữ hình ảnh hiện tại</small>
 <div id="imagePreview" class="mt-2 position-relative" style="display: none;">
     <p><strong>Hình ảnh mới đã chọn:</strong></p>
     <div class="image-container position-relative d-inline-block">

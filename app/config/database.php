@@ -2,8 +2,8 @@
 class Database {
 private $host = "localhost";
 private $db_name = "my_store";
-private $username = "root";
-private $password = "";
+private $username = "my_store_user";
+private $password = "12345678";
 public $conn;
 public function getConnection() {
 $this->conn = null;

@@ -33,7 +33,7 @@
 <div class="form-group">
 <label for="image">Hình ảnh sản phẩm:</label>
 <input type="file" id="image" name="image" class="form-control-file" accept="image/*" onchange="previewImage(this);">
-<small class="form-text text-muted">Chọn file hình ảnh (JPG, PNG, GIF) hoặc bỏ qua</small>
+<small class="form-text text-muted">Chọn file hình ảnh (JPG, PNG, GIF, WebP) hoặc bỏ qua</small>
 <div id="imagePreview" class="mt-2" style="display: none;">
     <img id="preview" src="#" alt="Xem trước hình ảnh" class="img-thumbnail" style="max-height: 200px;">
 </div>

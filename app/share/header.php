@@ -3,6 +3,7 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+require_once 'app/helpers/SessionHelper.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,6 +25,11 @@ rel="stylesheet">
     
     .toast {
         min-width: 300px;
+    }
+    
+    .product-image {
+        max-width: 100px;
+        height: auto;
     }
 </style>
 </head>
@@ -65,6 +71,32 @@ navigation">
     <span class="badge badge-pill badge-primary"><?= $cartCount ?></span>
     <?php endif; ?>
 </a>
+
+<!-- User Authentication Links -->
+<li class="nav-item">
+    <?php
+    if(SessionHelper::isLoggedIn()){
+        echo "<a class='nav-link'>".$_SESSION['username']."</a>";
+    }
+    else{
+        echo "<a class='nav-link' href='/project1/account/login'>Login</a>";
+    }
+    ?>
+</li>
+<?php if(SessionHelper::isAdmin()): ?>
+<li class="nav-item">
+    <a class="nav-link" href="/project1/admin">
+        <i class="fas fa-cog"></i> Admin
+    </a>
+</li>
+<?php endif; ?>
+<li class="nav-item">
+    <?php
+    if(SessionHelper::isLoggedIn()){
+        echo "<a class='nav-link' href='/project1/account/logout'>Logout</a>";
+    }
+    ?>
+</li>
 </div>
 </div>
 </nav>
@@ -88,6 +120,26 @@ navigation">
         $_SESSION['cart_success_display'] = true;
         // Remove the message so it doesn't appear again on refresh
         unset($_SESSION['cart_success']);
+    ?>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['cart_error'])): ?>
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
+        <div class="toast-header bg-danger text-white">
+            <strong class="mr-auto"><i class="fas fa-exclamation-circle"></i> Thông báo</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            <?= $_SESSION['cart_error'] ?>
+        </div>
+    </div>
+    <?php 
+        // Set a flag to show the toast via JavaScript in footer
+        $_SESSION['cart_success_display'] = true;
+        // Remove the message so it doesn't appear again on refresh
+        unset($_SESSION['cart_error']);
     ?>
     <?php endif; ?>
 </div>

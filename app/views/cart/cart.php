@@ -42,9 +42,9 @@
                     </td>
                     <td><?= number_format($itemTotal, 0, ',', '.') ?> đ</td>
                     <td>
-                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal" data-id="<?= $id ?>" data-name="<?= $item['name'] ?>">
+                        <a href="/project1/Product/removeFromCart/<?= $id ?>" class="btn btn-danger btn-sm">
                             Xóa
-                        </button>
+                        </a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -66,47 +66,5 @@
     </form>
     <?php endif; ?>
 </div>
-
-<!-- Modal xác nhận xóa sản phẩm -->
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <p>Bạn có muốn xóa sản phẩm này không?</p>
-                <h5 id="productName" class="text-danger"></h5>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Không</button>
-                <button type="button" id="confirmDelete" class="btn btn-danger">Có</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    $(document).ready(function() {
-        var deleteUrl = '';
-        
-        $('#deleteModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var id = button.data('id');
-            var name = button.data('name');
-            var modal = $(this);
-            
-            deleteUrl = '/project1/Product/removeFromCart/' + id;
-            modal.find('#productName').text(name);
-        });
-        
-        $('#confirmDelete').on('click', function() {
-            window.location.href = deleteUrl;
-        });
-    });
-</script>
 
 <?php include 'app/share/footer.php'; ?> 

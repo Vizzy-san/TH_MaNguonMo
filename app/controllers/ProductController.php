@@ -3,7 +3,7 @@
 require_once('app/config/database.php');
 require_once('app/models/ProductModel.php');
 require_once('app/models/CategoryModel.php');
-require_once('app/share/SessionHelper.php');
+require_once('app/helpers/SessionHelper.php');
 class ProductController
 {
 private $productModel;
@@ -35,7 +35,7 @@ private function handleFileUpload() {
     }
     
     // Validate file type
-    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp'];
     if(!in_array($_FILES['image']['type'], $allowed_types)) {
         return false; // Invalid file type
     }
@@ -217,7 +217,7 @@ public function removeFromCart($id)
         $productName = $cart[$id]['name'];
         unset($cart[$id]);
         SessionHelper::set('cart', $cart);
-        SessionHelper::set('cart_success', "Sản phẩm \"" . $productName . "\" đã được xóa khỏi giỏ hàng!");
+        SessionHelper::set('cart_error', "Sản phẩm \"" . $productName . "\" đã được xóa khỏi giỏ hàng!");
     }
     
     header('Location: /project1/Product/cart');

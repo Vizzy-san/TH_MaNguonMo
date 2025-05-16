@@ -88,5 +88,14 @@ public function deleteCategory($id)
     
     return false;
 }
+
+// Get the total count of categories
+public function getCategoryCount() {
+    $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_OBJ);
+    return $result->count;
+}
 }
 ?> 

@@ -3,7 +3,7 @@ ob_start();
 ?>
 
 <div class="mb-4">
-    <a href="/project1/admin/orders" class="btn btn-outline-secondary">
+    <a href="/BFYL/admin/orders" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Back to Orders
     </a>
 </div>
@@ -53,7 +53,7 @@ ob_start();
                                 <td><?php echo htmlspecialchars($item->name ?? 'Unknown Product'); ?></td>
                                 <td>
                                     <?php if (!empty($item->image)): ?>
-                                        <img src="/project1/uploads/<?php echo $item->image; ?>" alt="<?php echo htmlspecialchars($item->name ?? ''); ?>" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <img src="/BFYL/uploads/<?php echo $item->image; ?>" alt="<?php echo htmlspecialchars($item->name ?? ''); ?>" style="width: 50px; height: 50px; object-fit: cover;">
                                     <?php else: ?>
                                         <span class="text-muted">No image</span>
                                     <?php endif; ?>

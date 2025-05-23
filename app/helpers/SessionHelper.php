@@ -14,6 +14,10 @@ class SessionHelper {
         return isset($_SESSION[$key]) ? $_SESSION[$key] : null;
     }
     
+    public static function has($key) {
+        return isset($_SESSION[$key]);
+    }
+    
     public static function delete($key) {
         if (isset($_SESSION[$key])) {
             unset($_SESSION[$key]);
@@ -25,10 +29,10 @@ class SessionHelper {
     }
     
     public static function isLoggedIn() {
-        return isset($_SESSION['username']);
+        return isset($_SESSION['user_id']);
     }
     
     public static function isAdmin() {
-        return isset($_SESSION['username']) && $_SESSION['user_role'] === 'admin';
+        return isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin';
     }
 } 

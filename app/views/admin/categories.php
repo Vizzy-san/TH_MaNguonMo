@@ -4,7 +4,7 @@ ob_start();
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3">Category Management</h1>
-    <a href="/project1/Category/add" class="btn btn-primary">
+    <a href="/BFYL/Category/add" class="btn btn-primary">
         <i class="fas fa-plus"></i> Add New Category
     </a>
 </div>
@@ -31,10 +31,10 @@ ob_start();
                                 <td><?php echo htmlspecialchars($category->name); ?></td>
                                 <td><?php echo htmlspecialchars($category->description ?? ''); ?></td>
                                 <td>
-                                    <a href="/project1/Category/edit/<?php echo $category->id; ?>" class="btn btn-sm btn-warning">
+                                    <a href="/BFYL/Category/edit/<?php echo $category->id; ?>" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="/project1/Category/delete/<?php echo $category->id; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this category? This will affect all associated products.');">
+                                    <a href="/BFYL/Category/delete/<?php echo $category->id; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this category? This will affect all associated products.');">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </td>

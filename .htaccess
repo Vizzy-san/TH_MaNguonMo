@@ -1,11 +1,21 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /project1/
     
-    # Don't rewrite files or directories
+    # Đặt RewriteBase theo thư mục dự án của bạn
+    # Nếu dự án nằm trong thư mục gốc, sử dụng /
+    # Nếu nằm trong thư mục con, ví dụ: /BFYL/
+    RewriteBase /BFYL/
+    
+    # Chuyển hướng trang chủ đến Product/list
+    RewriteRule ^$ Product/list [L,R=302]
+    
+    # Route for PayOS webhook
+    RewriteRule ^webhook/payos$ index.php?url=Product/payosWebhook [QSA,L]
+    
+    # Không rewrite cho các file và thư mục thật
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     
-    # Rewrite everything else to index.php
+    # Chuyển hướng tất cả request còn lại đến index.php
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>

@@ -52,7 +52,7 @@ class CategoryController
                 
                 if ($result) {
                     // Redirect to category list
-                    header('Location: /project1/Category');
+                    header('Location: /BFYL/Category');
                     exit;
                 } else {
                     $errors[] = 'Đã xảy ra lỗi khi lưu danh mục.';
@@ -81,7 +81,7 @@ class CategoryController
             
             $edit = $this->categoryModel->updateCategory($id, $name, $description);
             if ($edit) {
-                header('Location: /project1/Category');
+                header('Location: /BFYL/Category');
             } else {
                 echo "Đã xảy ra lỗi khi lưu danh mục.";
             }
@@ -91,7 +91,7 @@ class CategoryController
     public function delete($id)
     {
         if ($this->categoryModel->deleteCategory($id)) {
-            header('Location: /project1/Category');
+            header('Location: /BFYL/Category');
         } else {
             echo "Đã xảy ra lỗi khi xóa danh mục.";
         }

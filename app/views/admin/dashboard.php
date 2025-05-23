@@ -64,7 +64,7 @@ ob_start();
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
         <h6 class="m-0 font-weight-bold text-primary">Recent Orders</h6>
-        <a href="/project1/admin/orders" class="btn btn-sm btn-primary">View All</a>
+        <a href="/BFYL/admin/orders" class="btn btn-sm btn-primary">View All</a>
     </div>
     <div class="card-body">
         <?php if (empty($recentOrders)): ?>
@@ -91,7 +91,7 @@ ob_start();
                                 <td><?php echo $order->item_count; ?></td>
                                 <td><?php echo number_format($order->total_amount, 0, ',', '.'); ?> đ</td>
                                 <td>
-                                    <a href="/project1/admin/viewOrder/<?php echo $order->id; ?>" class="btn btn-sm btn-info">
+                                    <a href="/BFYL/admin/viewOrder/<?php echo $order->id; ?>" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </td>

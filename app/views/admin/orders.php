@@ -34,7 +34,7 @@ ob_start();
                                 <td><?php echo $order->item_count; ?></td>
                                 <td><?php echo number_format($order->total_amount, 0, ',', '.'); ?> đ</td>
                                 <td>
-                                    <a href="/project1/admin/viewOrder/<?php echo $order->id; ?>" class="btn btn-sm btn-info">
+                                    <a href="/BFYL/admin/viewOrder/<?php echo $order->id; ?>" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> View
                                     </a>
                                 </td>

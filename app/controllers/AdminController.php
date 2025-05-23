@@ -14,7 +14,7 @@ class AdminController {
     public function __construct() {
         // Check if user is admin before allowing access
         if (!SessionHelper::isAdmin()) {
-            header('Location: /project1/account/login');
+            header('Location: /BFYL/account/login');
             exit;
         }
         
@@ -79,7 +79,7 @@ class AdminController {
     
     // Alternative method to handle hyphenated URL
     public function customer() {
-        // This method handles /project1/admin/customer-support URL
+        // This method handles /BFYL/admin/customer-support URL
         // The rest of the URL (after the hyphen) is passed as an argument to this method
         $action = isset($_GET['url']) ? explode('/', $_GET['url']) : [];
         
@@ -255,11 +255,20 @@ class AdminController {
     
     // Get all content items
     private function getContents() {
-        $query = "SELECT * FROM contents ORDER BY id DESC";
-        
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        try {
+            $query = "SELECT * FROM content ORDER BY position ASC";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            // Table might not exist yet
+            return [];
+        }
+    }
+    
+    // Default list action - redirects to index
+    public function list() {
+        // Redirect to index (dashboard) when list action is called
+        $this->index();
     }
 } 

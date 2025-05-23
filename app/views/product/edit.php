@@ -9,7 +9,7 @@
 </ul>
 </div>
 <?php endif; ?>
-<form method="POST" action="/project1/Product/update" enctype="multipart/form-data" onsubmit="return validateForm();">
+<form method="POST" action="/BFYL/Product/update" enctype="multipart/form-data" onsubmit="return validateForm();">
 <input type="hidden" name="id" value="<?php echo $product->id; ?>">
 <div class="form-group">
 <label for="name">Tên sản phẩm:</label>
@@ -39,7 +39,7 @@
 <div id="existingImage" class="mb-2 position-relative">
     <?php if (!empty($product->image)): ?>
         <div class="image-container position-relative d-inline-block">
-            <img src="/project1/uploads/<?php echo htmlspecialchars($product->image, ENT_QUOTES, 'UTF-8'); ?>" 
+            <img src="/BFYL/uploads/<?php echo htmlspecialchars($product->image, ENT_QUOTES, 'UTF-8'); ?>" 
                  alt="<?php echo htmlspecialchars($product->name, ENT_QUOTES, 'UTF-8'); ?>" 
                  class="img-thumbnail" style="max-height: 200px;">
             <button type="button" class="btn btn-sm btn-danger position-absolute" 
@@ -67,7 +67,7 @@
 </div>
 <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
 </form>
-<a href="/project1/Product/list" class="btn btn-secondary mt-2">Quay lại danh sách sản phẩm</a>
+<a href="/BFYL/Product/list" class="btn btn-secondary mt-2">Quay lại danh sách sản phẩm</a>
 
 <script>
 function previewImage(input) {

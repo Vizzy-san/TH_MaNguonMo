@@ -48,19 +48,19 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="/project1/admin">Admin Dashboard</a>
+        <a class="navbar-brand" href="/BFYL/admin">Admin Dashboard</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="/project1/product" target="_blank">
+                    <a class="nav-link" href="/BFYL/product" target="_blank">
                         <i class="fas fa-store"></i> View Store
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/project1/account/logout">
+                    <a class="nav-link" href="/BFYL/account/logout">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>
@@ -73,47 +73,47 @@
             <div class="col-md-2 sidebar pt-3">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['REQUEST_URI']) == 'admin' ? 'active' : ''; ?>" href="/project1/admin">
+                        <a class="nav-link <?php echo basename($_SERVER['REQUEST_URI']) == 'admin' ? 'active' : ''; ?>" href="/BFYL/admin">
                             <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'products') !== false ? 'active' : ''; ?>" href="/project1/admin/products">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'products') !== false ? 'active' : ''; ?>" href="/BFYL/admin/products">
                             <i class="fas fa-box mr-2"></i> Products
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'categories') !== false ? 'active' : ''; ?>" href="/project1/admin/categories">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'categories') !== false ? 'active' : ''; ?>" href="/BFYL/admin/categories">
                             <i class="fas fa-folder mr-2"></i> Categories
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'orders') !== false ? 'active' : ''; ?>" href="/project1/admin/orders">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'orders') !== false ? 'active' : ''; ?>" href="/BFYL/admin/orders">
                             <i class="fas fa-shopping-cart mr-2"></i> Orders
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'promotions') !== false ? 'active' : ''; ?>" href="/project1/admin/promotions">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'promotions') !== false ? 'active' : ''; ?>" href="/BFYL/admin/promotions">
                             <i class="fas fa-percent mr-2"></i> Promotions
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'shipping') !== false ? 'active' : ''; ?>" href="/project1/admin/shipping">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'shipping') !== false ? 'active' : ''; ?>" href="/BFYL/admin/shipping">
                             <i class="fas fa-truck mr-2"></i> Shipping
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'customer-support') !== false ? 'active' : ''; ?>" href="/project1/admin/customersupport">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'customersupport') !== false ? 'active' : ''; ?>" href="/BFYL/admin/customersupport">
                             <i class="fas fa-headset mr-2"></i> Customer Support
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'content') !== false ? 'active' : ''; ?>" href="/project1/admin/content">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'content') !== false ? 'active' : ''; ?>" href="/BFYL/admin/content">
                             <i class="fas fa-file-alt mr-2"></i> Content
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'users') !== false ? 'active' : ''; ?>" href="/project1/admin/users">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'users') !== false ? 'active' : ''; ?>" href="/BFYL/admin/users">
                             <i class="fas fa-users mr-2"></i> Users
                         </a>
                     </li>

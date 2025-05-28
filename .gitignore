@@ -1,0 +1,9 @@
+# Configuration files with sensitive data
+app/config/google_auth.php
+
+# Common ignored files
+.env
+vendor/
+node_modules/
+.DS_Store
+Thumbs.db

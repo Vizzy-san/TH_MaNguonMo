@@ -1,6 +1,6 @@
 <?php include BASE_PATH . '/app/share/header.php'; ?>
 <h1>Sửa danh mục</h1>
-<form method="POST" action="/project1/Category/update">
+<form method="POST" action="/BFYL/Category/update">
     <input type="hidden" name="id" value="<?php echo $category->id; ?>">
     <div class="form-group">
         <label for="name">Tên danh mục:</label>
@@ -12,5 +12,5 @@
     </div>
     <button type="submit" class="btn btn-primary">Cập nhật danh mục</button>
 </form>
-<a href="/project1/Category/list" class="btn btn-secondary mt-2">Quay lại danh sách danh mục</a>
+<a href="/BFYL/Category/list" class="btn btn-secondary mt-2">Quay lại danh sách danh mục</a>
 <?php include BASE_PATH . '/app/share/footer.php'; ?> 

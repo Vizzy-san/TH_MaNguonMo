@@ -9,7 +9,7 @@
 </ul>
 </div>
 <?php endif; ?>
-<form method="POST" action="/project1/Category/save">
+<form method="POST" action="/BFYL/Category/save">
 <div class="form-group">
 <label for="name">Tên danh mục:</label>
 <input type="text" id="name" name="name" class="form-control" required>
@@ -20,5 +20,5 @@
 </div>
 <button type="submit" class="btn btn-primary">Thêm danh mục</button>
 </form>
-<a href="/project1/Category/list" class="btn btn-secondary mt-2">Quay lại danh sách danh mục</a>
+<a href="/BFYL/Category/list" class="btn btn-secondary mt-2">Quay lại danh sách danh mục</a>
 <?php include BASE_PATH . '/app/share/footer.php'; ?> 

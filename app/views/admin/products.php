@@ -4,7 +4,7 @@ ob_start();
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3">Product Management</h1>
-    <a href="/project1/Product/add" class="btn btn-primary">
+    <a href="/BFYL/Product/add" class="btn btn-primary">
         <i class="fas fa-plus"></i> Add New Product
     </a>
 </div>
@@ -32,7 +32,7 @@ ob_start();
                                 <td><?php echo $product->id; ?></td>
                                 <td>
                                     <?php if (!empty($product->image)): ?>
-                                        <img src="/project1/uploads/<?php echo $product->image; ?>" alt="<?php echo htmlspecialchars($product->name); ?>" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <img src="/BFYL/uploads/<?php echo $product->image; ?>" alt="<?php echo htmlspecialchars($product->name); ?>" style="width: 50px; height: 50px; object-fit: cover;">
                                     <?php else: ?>
                                         <span class="text-muted">No image</span>
                                     <?php endif; ?>
@@ -41,13 +41,13 @@ ob_start();
                                 <td><?php echo htmlspecialchars($product->category_name ?? 'Uncategorized'); ?></td>
                                 <td><?php echo number_format($product->price, 0, ',', '.'); ?> đ</td>
                                 <td>
-                                    <a href="/project1/Product/show/<?php echo $product->id; ?>" class="btn btn-sm btn-info" target="_blank">
+                                    <a href="/BFYL/Product/show/<?php echo $product->id; ?>" class="btn btn-sm btn-info" target="_blank">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="/project1/Product/edit/<?php echo $product->id; ?>" class="btn btn-sm btn-warning">
+                                    <a href="/BFYL/Product/edit/<?php echo $product->id; ?>" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="/project1/Product/delete/<?php echo $product->id; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this product?');">
+                                    <a href="/BFYL/Product/delete/<?php echo $product->id; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this product?');">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 </td>

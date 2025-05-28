@@ -1,16 +1,14 @@
 <?php
 // Display cart success message if it exists
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-require_once 'app/helpers/SessionHelper.php';
+require_once BASE_PATH . '/app/helpers/SessionHelper.php';
+SessionHelper::init();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quản lý sản phẩm</title>
+<title>Buy For Your Life - Trang Mua Sắm Trực Tuyến Hàng Đầu Việt Nam</title>
 <link
 href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
 rel="stylesheet">
@@ -35,7 +33,7 @@ rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-<a class="navbar-brand" href="#">Quản lý sản phẩm</a>
+<a class="navbar-brand" href="/BFYL/">BFYL</a>
 
 <button class="navbar-toggler" type="button" data-toggle="collapse" data-
 target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle
@@ -47,17 +45,20 @@ navigation">
 <div class="collapse navbar-collapse" id="navbarNav">
 <ul class="navbar-nav mr-auto">
 <li class="nav-item">
-<a class="nav-link" href="/project1/Product/">Danh sách sản phẩm</a>
+<a class="nav-link" href="/BFYL/Product/">Danh sách sản phẩm</a>
 </li>
 <li class="nav-item">
-<a class="nav-link" href="/project1/Product/add">Thêm sản phẩm</a>
+<a class="nav-link" href="/BFYL/Product/add">Thêm sản phẩm</a>
 </li>
 <li class="nav-item">
-<a class="nav-link" href="/project1/Category/add">Thêm danh mục</a>
+<a class="nav-link" href="/BFYL/Category/add">Thêm danh mục</a>
+</li>
+<li class="nav-item">
+
 </li>
 </ul>
 <div class="navbar-nav">
-<a class="nav-link" href="/project1/Product/cart">
+<a class="nav-link" href="/BFYL/Product/cart">
     <i class="fas fa-shopping-cart"></i> Giỏ hàng
     <?php 
         $cartCount = 0;
@@ -72,20 +73,27 @@ navigation">
     <?php endif; ?>
 </a>
 
+<?php if(SessionHelper::isLoggedIn()): ?>
+<a class="nav-link" href="/BFYL/account/orderHistory">
+    <i class="fas fa-history"></i> Lịch sử mua hàng
+</a>
+<?php endif; ?>
+
 <!-- User Authentication Links -->
 <li class="nav-item">
     <?php
     if(SessionHelper::isLoggedIn()){
-        echo "<a class='nav-link'>".$_SESSION['username']."</a>";
+        // Hiển thị fullname
+        echo "<a class='nav-link'>".$_SESSION['fullname']."</a>";
     }
     else{
-        echo "<a class='nav-link' href='/project1/account/login'>Login</a>";
+        echo "<a class='nav-link' href='/BFYL/account/login'>Login</a>";
     }
     ?>
 </li>
 <?php if(SessionHelper::isAdmin()): ?>
 <li class="nav-item">
-    <a class="nav-link" href="/project1/admin">
+    <a class="nav-link" href="/BFYL/admin">
         <i class="fas fa-cog"></i> Admin
     </a>
 </li>
@@ -93,7 +101,7 @@ navigation">
 <li class="nav-item">
     <?php
     if(SessionHelper::isLoggedIn()){
-        echo "<a class='nav-link' href='/project1/account/logout'>Logout</a>";
+        echo "<a class='nav-link' href='/BFYL/account/logout'>Logout</a>";
     }
     ?>
 </li>
@@ -104,7 +112,7 @@ navigation">
 <!-- Toast container -->
 <div class="toast-container" aria-live="polite" aria-atomic="true">
     <?php if (isset($_SESSION['cart_success'])): ?>
-    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="10000">
         <div class="toast-header bg-success text-white">
             <strong class="mr-auto"><i class="fas fa-check-circle"></i> Thành công</strong>
             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
@@ -124,7 +132,7 @@ navigation">
     <?php endif; ?>
     
     <?php if (isset($_SESSION['cart_error'])): ?>
-    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="10000">
         <div class="toast-header bg-danger text-white">
             <strong class="mr-auto"><i class="fas fa-exclamation-circle"></i> Thông báo</strong>
             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">

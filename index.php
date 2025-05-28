@@ -41,18 +41,23 @@ $url = filter_var($url, FILTER_SANITIZE_URL);
 $url = explode('/', $url);
 // Kiểm tra phần đầu tiên của URL để xác định controller
 $controllerName = isset($url[0]) && $url[0] != '' ? ucfirst($url[0]) . 'Controller' :
-'DefaultController';
+'ProductController';
 // Kiểm tra phần thứ hai của URL để xác định action
-$action = isset($url[1]) && $url[1] != '' ? $url[1] : 'index';
+$action = isset($url[1]) && $url[1] != '' ? $url[1] : 'list';
+
+// Set default action to 'index' for AdminController
+if ($controllerName === 'AdminController' && $action === 'list') {
+    $action = 'index';
+}
 
 // die ("controller=$controllerName - action=$action");
 
 // Kiểm tra xem controller và action có tồn tại không
-if (!file_exists('app/controllers/' . $controllerName . '.php')) {
+if (!file_exists(BASE_PATH . '/app/controllers/' . $controllerName . '.php')) {
 // Xử lý không tìm thấy controller
 die('Controller not found: ' . $controllerName);
 }
-require_once 'app/controllers/' . $controllerName . '.php';
+require_once BASE_PATH . '/app/controllers/' . $controllerName . '.php';
 $controller = new $controllerName();
 if (!method_exists($controller, $action)) {
 // Xử lý không tìm thấy action

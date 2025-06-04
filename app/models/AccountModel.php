@@ -230,4 +230,17 @@ class AccountModel
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
+    
+    public function getAccountById($id)
+    {
+        $query = "SELECT u.*, r.role_name 
+                 FROM " . $this->table_name . " u
+                 LEFT JOIN user_roles r ON u.role_id = r.id
+                 WHERE u.id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result;
+    }
 }

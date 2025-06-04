@@ -112,11 +112,7 @@
                             <i class="fas fa-file-alt mr-2"></i> Content
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'users') !== false ? 'active' : ''; ?>" href="/BFYL/admin/users">
-                            <i class="fas fa-users mr-2"></i> Users
-                        </a>
-                    </li>
+                 
                 </ul>
             </div>
             <div class="col-md-10 content">

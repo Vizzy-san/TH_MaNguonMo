@@ -1,6 +1,7 @@
 <?php
 require_once('app/config/database.php');
 require_once('app/models/AccountModel.php');
+// Removed FavoriteModel require
 require_once('app/config/google_auth.php');
 require_once('app/helpers/SessionHelper.php');
 
@@ -160,6 +161,16 @@ class AccountController {
                     $_SESSION['user_role'] = $account->role_name;
                     $_SESSION['fullname'] = $account->fullname;
                     $_SESSION['phone'] = $account->phonenumber;
+                    
+                    // Check if there is a redirect URL set (coming from checkout)
+                    $redirect = SessionHelper::get('redirect_after_login');
+                    if ($redirect) {
+                        // Clear the redirect URL from session
+                        SessionHelper::delete('redirect_after_login');
+                        header('Location: ' . $redirect);
+                        exit;
+                    }
+                    
                     header('Location: /BFYL/product');
                     exit;
                 }
@@ -459,5 +470,79 @@ class AccountController {
         }
         
         include 'app/views/account/order_history.php';
+    }
+    
+    public function profile() {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        $userId = $_SESSION['user_id'];
+        $account = $this->accountModel->getAccountById($userId);
+        
+        // Removed favorites functionality as per request
+        
+        include 'app/views/account/profile.php';
+    }
+    
+    // Handle password change
+    public function changePassword() {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $userId = $_SESSION['user_id'];
+            $currentPassword = $_POST['current_password'] ?? '';
+            $newPassword = $_POST['new_password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            
+            // Validate inputs
+            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+                SessionHelper::set('profile_message', 'Vui lòng điền đầy đủ thông tin.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            if ($newPassword !== $confirmPassword) {
+                SessionHelper::set('profile_message', 'Mật khẩu mới và xác nhận mật khẩu không khớp.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            // Get current user data
+            $account = $this->accountModel->getAccountById($userId);
+            
+            // Verify current password
+            if (!password_verify($currentPassword, $account->password)) {
+                SessionHelper::set('profile_message', 'Mật khẩu hiện tại không chính xác.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            // Hash the new password
+            $hashedNewPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            
+            // Update password
+            if ($this->accountModel->updatePassword($userId, $hashedNewPassword)) {
+                SessionHelper::set('profile_message', 'Đổi mật khẩu thành công.');
+                SessionHelper::set('profile_message_type', 'success');
+            } else {
+                SessionHelper::set('profile_message', 'Có lỗi xảy ra khi cập nhật mật khẩu.');
+                SessionHelper::set('profile_message_type', 'danger');
+            }
+            
+            header('Location: /BFYL/account/profile');
+            exit;
+        }
+    }
+    
+    // Method to display the access denied page
+    public function accessDenied() {
+        include 'app/views/account/access_denied.php';
     }
 }

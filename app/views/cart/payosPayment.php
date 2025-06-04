@@ -95,18 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('payment-status').textContent = 'Đã thanh toán';
                     document.getElementById('payment-status').classList.add('text-success');
                     
-                    // Chuyển hướng đến trang xác nhận đơn hàng
-                    <?php if (isset($order_id)): ?>
-                    window.location.href = '/BFYL/Product/orderConfirmation/<?= $order_id ?>';
-                    <?php else: ?>
-                    // Use the order ID from the response if available
-                    if (data.orderId) {
-                        window.location.href = '/BFYL/Product/orderConfirmation/' + data.orderId;
-                    } else {
-                        // Reload the page to get the latest status
-                        window.location.reload();
-                    }
-                    <?php endif; ?>
+                    // Chuyển hướng đến trang sản phẩm thay vì trang xác nhận đơn hàng
+                    window.location.href = '/BFYL/Product';
                 }
             })
             .catch(error => {
@@ -134,4 +124,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include 'app/share/footer.php'; ?> 
+<?php include 'app/share/footer.php'; ?>

@@ -1,5 +1,8 @@
 <?php include BASE_PATH . '/app/share/header.php'; ?>
 
+<!-- Close main-container div from header.php -->
+</div>
+
 <!-- Container for toasts -->
 <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
 
@@ -202,4 +205,6 @@ document.addEventListener('DOMContentLoaded', function() {
 endif; 
 ?>
 
-<?php include BASE_PATH . '/app/share/footer.php'; ?> 
+<!-- Re-open container for footer -->
+<div class="container">
+<?php include BASE_PATH . '/app/share/footer.php'; ?>

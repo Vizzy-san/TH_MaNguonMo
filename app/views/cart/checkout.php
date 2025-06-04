@@ -10,15 +10,15 @@
                     Thông tin đặt hàng
                 </div>
                 <div class="card-body">
-                    <form action="/BFYL/Product/processCheckout" method="post">
+                    <form action="/BFYL/Product/testPayment" method="post">
                         <div class="form-group">
                             <label for="name">Họ tên</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
+                            <input type="text" class="form-control" id="name" name="name" value="<?= SessionHelper::get('fullname') ?? '' ?>" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="phone">Số điện thoại</label>
-                            <input type="text" class="form-control" id="phone" name="phone" required>
+                            <input type="text" class="form-control" id="phone" name="phone" value="<?= SessionHelper::get('phone') ?? '' ?>" required>
                         </div>
                         
                         <div class="form-group">
@@ -37,7 +37,7 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank_transfer" checked>
                                 <label class="form-check-label" for="bank_transfer">
-                                    Thanh toán bằng chuyển khoản ngân hàng
+                                    Thanh toán bằng chuyển khoản ngân hàng (QR Code)
                                 </label>
                             </div>  
                         </div>
@@ -93,4 +93,4 @@
     </div>
 </div>
 
-<?php include 'app/share/footer.php'; ?> 
+<?php include 'app/share/footer.php'; ?>

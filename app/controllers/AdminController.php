@@ -12,9 +12,17 @@ class AdminController {
     private $accountModel;
     
     public function __construct() {
-        // Check if user is admin before allowing access
-        if (!SessionHelper::isAdmin()) {
+        // First check if user is logged in
+        if (!SessionHelper::isLoggedIn()) {
+            // Not logged in, redirect to login page
             header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        // Then check if user is admin
+        if (!SessionHelper::isAdmin()) {
+            // User is logged in but not an admin, show access denied
+            header('Location: /BFYL/account/accessDenied');
             exit;
         }
         
@@ -271,4 +279,4 @@ class AdminController {
         // Redirect to index (dashboard) when list action is called
         $this->index();
     }
-} 
+}

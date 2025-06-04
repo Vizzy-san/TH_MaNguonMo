@@ -1,0 +1,252 @@
+/* Scrolling top-bar styles */
+.top-bar {
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #e7e7e7;
+  color: #1a94ff;
+  overflow: hidden;
+  white-space: nowrap;
+  height: 30px;
+  line-height: 30px;
+  padding: 0;
+  position: relative;
+}
+
+.scrolling-text {
+  display: inline-block;
+  padding-left: 100%;
+  animation: scroll-left 25s linear infinite;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Search Bar Styles */
+.search-container {
+  flex-grow: 1;
+  max-width: 700px;
+  margin: 0 1rem;
+}
+
+.search-form {
+  display: flex;
+  position: relative;
+}
+
+.search-input {
+  border-radius: 4px 0 0 4px !important;
+  border-right: none !important;
+  flex-grow: 1;
+  height: 40px;
+}
+
+.search-btn {
+  background-color: #1a94ff;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  padding: 0 16px;
+  height: 40px;
+}
+
+.search-btn:hover {
+  background-color: #0d86ea;
+}
+
+@media (max-width: 768px) {
+  .search-container {
+    margin: 10px 0;
+    width: 100%;
+    order: 3;
+  }
+}
+
+/* Tiki-style Sidebar */
+body {
+  overflow-x: hidden;
+}
+
+.main-container {
+  display: flex;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
+}
+
+.sidebar-wrapper {
+  width: 230px;
+  flex-shrink: 0;
+  position: relative;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.main-content {
+  flex: 1;
+  padding-left: 20px;
+  padding-right: 15px;
+}
+
+/* Full width content when no sidebar */
+.main-content-full {
+  width: 100%;
+  padding: 0 20px;
+}
+
+.sidebar-categories {
+  width: 100%;
+  min-height: calc(100vh - 150px);
+  background: #fff;
+  padding: 0;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 15px;
+  border-bottom: 1px solid #f1f1f1;
+  background-color: #f8f9fa;
+}
+
+.sidebar-header h5 {
+  margin: 0;
+  font-size: 16px;
+  color: #212121;
+  font-weight: 600;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-list li {
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.category-list li:last-child {
+  border-bottom: none;
+}
+
+.category-list a {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  color: #38383d;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.category-list a:hover {
+  background-color: #f5f5f5;
+  color: #1a94ff;
+  transform: translateX(5px);
+}
+
+.category-list a i {
+  margin-right: 12px;
+  width: 20px;
+  text-align: center;
+  color: #757575;
+  font-size: 16px;
+}
+
+.category-list a:hover i {
+  color: #1a94ff;
+}
+
+/* Toast container styles */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1050;
+}
+
+.toast {
+  min-width: 300px;
+}
+
+.product-image {
+  max-width: 100px;
+  height: auto;
+}
+
+/* Product card styles */
+.product-card {
+  margin-bottom: 20px;
+  height: 100%;
+  transition: transform 0.3s;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-grid .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -10px;
+  margin-left: -10px;
+}
+
+.product-grid .col-md-3 {
+  flex: 0 0 25%;
+  max-width: 25%;
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.product-card img {
+  max-height: 200px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+.product-card .card-title {
+  font-size: 0.9rem;
+  height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.product-card .card-text {
+  font-size: 0.85rem;
+}
+
+.product-card .btn-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.product-card .btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .product-grid .col-md-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 576px) {
+  .product-grid .col-md-3 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}

@@ -39,6 +39,17 @@ private function generateOrderId() {
     return $prefix . $numbers;
 }
 
+// Create a new method for generating PayOS-compatible numeric order codes
+private function generatePayOSOrderCode() {
+    // Create a unique numeric ID that's small enough to fit within PayOS constraints
+    // Use current timestamp (10 digits) + random 6 digits for uniqueness, but keep it under MAX_SAFE_INTEGER
+    $timestamp = time(); // 10 digits
+    $random = mt_rand(100000, 999999); // 6 digits
+    
+    // Combine to create a max 16-digit number, well under 9007199254740991 (which is 16 digits)
+    return (int)($timestamp . $random);
+}
+
 // Handle file upload and return filename if successful
 private function handleFileUpload() {
     // Check if a file was uploaded
@@ -83,12 +94,15 @@ public function list()
 
 public function show($id)
 {
-$product = $this->productModel->getProductById($id);
-if ($product) {
-include 'app/views/product/show.php';
-} else {
-echo "Không thấy sản phẩm.";
-}
+    $product = $this->productModel->getProductById($id);
+    
+    // Removed favorites check as per request
+    
+    if ($product) {
+        include 'app/views/product/show.php';
+    } else {
+        echo "Không thấy sản phẩm.";
+    }
 }
 
 public function add()
@@ -265,6 +279,19 @@ public function updateCart()
 
 public function checkout()
 {
+    // Check if user is logged in
+    if (!SessionHelper::isLoggedIn()) {
+        // Store a message indicating login is required
+        SessionHelper::set('login_required', 'Vui lòng đăng nhập để tiếp tục thanh toán.');
+        
+        // Store the intended destination for post-login redirect
+        SessionHelper::set('redirect_after_login', '/BFYL/Product/checkout');
+        
+        // Redirect to login page
+        header('Location: /BFYL/account/login');
+        exit;
+    }
+    
     $cart = SessionHelper::get('cart') ?: [];
     if (empty($cart)) {
         echo "Giỏ hàng trống.";
@@ -294,7 +321,7 @@ public function processCheckout()
         $this->db->beginTransaction();
         
         try {
-            // Generate custom order ID
+            // Generate custom order ID for database (alphanumeric)
             $order_code = $this->generateOrderId();
             
             // Calculate total amount
@@ -333,9 +360,12 @@ public function processCheckout()
                 // Initialize PayOS
                 $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
                 
+                // Generate PayOS compatible numeric order code
+                $payosOrderCode = $this->generatePayOSOrderCode();
+                
                 // Set up payment data
                 $paymentData = [
-                    'orderCode' => $order_code,
+                    'orderCode' => $payosOrderCode, // Use numeric order code for PayOS
                     'amount' => intval($totalAmount), // Ensure we use the actual cart total amount, cast to integer
                     'description' => "Thanh toán đơn hàng " . $order_code,
                     'returnUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback",
@@ -362,35 +392,24 @@ public function processCheckout()
                     // Xóa giỏ hàng sau khi đặt hàng thành công
                     SessionHelper::delete('cart');
                     
-                    // Redirect directly to PayOS checkout URL
+                    // Always redirect directly to PayOS checkout URL for bank_transfer
                     if (isset($payos_data['checkoutUrl'])) {
                         header('Location: ' . $payos_data['checkoutUrl']);
                         exit;
                     } else {
-                        // Fallback to order confirmation if checkoutUrl is not available
-                        header('Location: /BFYL/Product/orderConfirmation/' . $order_id);
+                        // Fallback to home page if checkoutUrl is not available
+                        header('Location: /BFYL/Product');
                         exit;
                     }
                 } catch (Exception $e) {
-                    // If PayOS fails, revert to regular bank transfer
-                    if ($payment_method == 'payos_qr') {
-                        $payment_method = 'bank_transfer';
-                    }
-                    
-                    $query = "UPDATE orders SET payment_method = :payment_method WHERE id = :order_id";
-                    $stmt = $this->db->prepare($query);
-                    $stmt->bindParam(':payment_method', $payment_method);
-                    $stmt->bindParam(':order_id', $order_id);
-                    $stmt->execute();
-                    
                     // Log the error
                     error_log("PayOS Error: " . $e->getMessage());
                     
                     // Still commit the transaction as we have the order
                     $this->db->commit();
                     
-                    // Redirect to order confirmation
-                    header('Location: /BFYL/Product/orderConfirmation/' . $order_id);
+                    // Redirect to home page
+                    header('Location: /BFYL/Product');
                     exit;
                 }
             }
@@ -403,108 +422,13 @@ public function processCheckout()
                 $this->db->commit();
             }
             
-            // Chuyển hướng đến trang xác nhận đơn hàng (non-PayOS methods)
-            header('Location: /BFYL/Product/orderConfirmation/' . $order_id);
+            // Chuyển hướng đến trang chủ thay vì trang xác nhận đơn hàng
+            header('Location: /BFYL/Product');
         } catch (Exception $e) {
             // Rollback giao dịch nếu có lỗi
             $this->db->rollBack();
             echo "Đã xảy ra lỗi khi xử lý đơn hàng: " . $e->getMessage();
         }
-    }
-}
-
-public function orderConfirmation($order_id = null)
-{
-    if (!$order_id && isset($_SESSION['current_order_id'])) {
-        $order_id = $_SESSION['current_order_id'];
-        unset($_SESSION['current_order_id']);
-    }
-    
-    if ($order_id) {
-        // Retrieve order payment method information
-        $query = "SELECT * FROM orders WHERE id = :order_id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':order_id', $order_id);
-        $stmt->execute();
-        $order = $stmt->fetch(PDO::FETCH_OBJ);
-        
-        // Pass the payment method and order code info to the view
-        $payment_method = $order ? $order->payment_method : null;
-        $order_code = $order ? $order->order_code : null;
-        $payment_status = $order ? $order->payment_status : null;
-        $payment_text = null;
-        $payos_data = null;
-        
-        if ($payment_method) {
-            if ($payment_method == 'cod') {
-                $payment_text = 'Thanh toán khi nhận hàng';
-            } elseif ($payment_method == 'bank_transfer') {
-                $payment_text = 'Thanh toán bằng chuyển khoản ngân hàng';
-                
-                // For bank transfer, also use PayOS for QR code payment
-                if ($payment_status != 'paid') {
-                    // Get PayOS data from session or generate new QR link if needed
-                    $payos_data = SessionHelper::get('payos_data');
-                    
-                    // If we don't have PayOS data in session, try to retrieve it
-                    if (!$payos_data && $order_code) {
-                        try {
-                            // Initialize PayOS
-                            $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
-                            
-                            // Get information about this payment
-                            $payos_data = $payos->getPaymentLinkInformation($order_code);
-                            
-                            // Store PayOS data in session
-                            SessionHelper::set('payos_data', $payos_data);
-                        } catch (Exception $e) {
-                            error_log("PayOS Error in orderConfirmation: " . $e->getMessage());
-                        }
-                    }
-                }
-            } elseif ($payment_method == 'payos_qr') {
-                $payment_text = 'Thanh toán bằng QR Code (PayOS)';
-                
-                // If payment is still pending, we need to get the PayOS data
-                if ($payment_status != 'paid') {
-                    // Get PayOS data from session or generate new QR link if needed
-                    $payos_data = SessionHelper::get('payos_data');
-                    
-                    // If we don't have PayOS data in session, try to retrieve it
-                    if (!$payos_data && $order_code) {
-                        try {
-                            // Initialize PayOS
-                            $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
-                            
-                            // Get information about this payment
-                            $payos_data = $payos->getPaymentLinkInformation($order_code);
-                            
-                            // Store PayOS data in session
-                            SessionHelper::set('payos_data', $payos_data);
-                        } catch (Exception $e) {
-                            error_log("PayOS Error in orderConfirmation: " . $e->getMessage());
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Get payment success/error messages from session if available
-        $payment_success = SessionHelper::get('payment_success');
-        $payment_error = SessionHelper::get('payment_error');
-        
-        // Clear the messages after retrieving
-        SessionHelper::delete('payment_success');
-        SessionHelper::delete('payment_error');
-    }
-    
-    // Check if this is a PayOS QR payment that is pending
-    if (($payment_method == 'payos_qr' || $payment_method == 'bank_transfer') && $payment_status != 'paid' && $payos_data) {
-        // Include the PayOS payment page instead of the regular order confirmation
-        include 'app/views/cart/payosPayment.php';
-    } else {
-        // Include payment success page
-        include 'app/views/cart/paymentSuccess.php';
     }
 }
 
@@ -515,9 +439,23 @@ public function paymentCallback()
         $orderCode = $_GET['orderCode'];
         $isAjax = isset($_GET['ajax']) && $_GET['ajax'] == '1';
         
+        // Check if the payment was canceled
+        if (isset($_GET['cancel']) && $_GET['cancel'] == 'true') {
+            // Redirect to the payment canceled page
+            header('Location: /BFYL/Product/paymentCanceled?' . http_build_query($_GET));
+            exit;
+        }
+        
         // If this is a callback from PayOS with status parameter
         if (isset($_GET['status'])) {
             $status = $_GET['status'];
+            
+            // If payment was explicitly marked as CANCELLED
+            if ($status == 'CANCELLED') {
+                // Redirect to the payment canceled page
+                header('Location: /BFYL/Product/paymentCanceled?' . http_build_query($_GET));
+                exit;
+            }
             
             // Update the order status based on PayOS callback
             if ($status == 'PAID') {
@@ -538,8 +476,8 @@ public function paymentCallback()
                     $stmt->bindParam(':order_code', $orderCode);
                     $stmt->execute();
                     
-                    // Redirect to confirmation page
-                    header('Location: /BFYL/Product/orderConfirmation/' . $order->id);
+                    // Redirect to home page instead of confirmation page
+                    header('Location: /BFYL/Product');
                     exit;
                 }
             }
@@ -650,82 +588,75 @@ public function payosWebhook()
 }
 
 // Handle PayOS test payment - tạo đơn hàng test và chuyển thẳng đến trang PayOS
-public function testPayment()
-{
+public function testPayment() {
     try {
-        // Generate order code
-        $order_code = $this->generateOrderId();
+        require_once 'app/models/PaymentModel.php';
+        $paymentModel = new PaymentModel();
         
-        // Get cart items and calculate total
-        $cart = SessionHelper::get('cart');
-        if (!$cart || empty($cart)) {
-            // If cart is empty, show error message
-            echo "<div class='alert alert-warning'>Giỏ hàng trống. Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán.</div>";
-            echo "<p><a href='/BFYL/Product' class='btn btn-primary'>Quay lại trang sản phẩm</a></p>";
-            return;
-        }
+        // Example test payment
+        $orderId = isset($_SESSION['order_id']) ? $_SESSION['order_id'] : 1;
+        $amount = 10000; // Example amount (100.00 VND)
+        $description = "Test payment with PayOS";
+        $customerId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
         
-        // Calculate actual cart total
-        $amount = 0;
-        foreach ($cart as $item) {
-            $amount += $item['price'] * $item['quantity'];
-        }
+        $paymentId = $paymentModel->createPayment($orderId, $amount, $description, $customerId);
         
-        // Initialize PayOS
-        $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
-        
-        // Set up payment data
-        $paymentData = [
-            'orderCode' => $order_code,
-            'amount' => intval($amount), // Use the actual cart total, cast to integer
-            'description' => "Thanh toán đơn hàng " . $order_code,
-            'returnUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback",
-            'cancelUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product"
-        ];
-        
-        // Add buyer details if available
-        $user_id = SessionHelper::get('user_id');
-        if ($user_id) {
-            $query = "SELECT name, email, phone FROM users WHERE id = :user_id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
-            $stmt->execute();
-            $user = $stmt->fetch(PDO::FETCH_OBJ);
+        if ($paymentId) {
+            // Initialize PayOS
+            $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
             
-            if ($user) {
-                if (!empty($user->name)) $paymentData['buyerName'] = $user->name;
-                if (!empty($user->email)) $paymentData['buyerEmail'] = $user->email;
-                if (!empty($user->phone)) $paymentData['buyerPhone'] = $user->phone;
+            // Generate compatible numeric order code
+            $orderCode = $this->generatePayOSOrderCode();
+            
+            $paymentData = [
+                'orderCode' => $orderCode, // Already an integer, no need to cast
+                'amount' => $amount,
+                'description' => $description,
+                'returnUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback",
+                'cancelUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product"
+            ];
+            
+            // Create actual PayOS payment link
+            try {
+                $payos_data = $payos->createPaymentLink($paymentData);
+                
+                // Store the data for the view and update our payment record
+                $transactionId = $payos_data['paymentLinkId'] ?? 'unknown';
+                $qrCode = $payos_data['qrCode'] ?? '';
+                $checkoutUrl = $payos_data['checkoutUrl'] ?? '';
+                $deeplink = $payos_data['deeplink'] ?? '';
+                
+                $paymentModel->savePayOSResponse($paymentId, $transactionId, $qrCode, $checkoutUrl, $deeplink);
+                
+                // Make variables available for the view
+                $paymentId = $paymentId;
+                $transactionId = $transactionId;
+                $qr_code = $qrCode;
+                $checkout_url = $checkoutUrl;
+                
+                // Include the view directly instead of using view() method
+                include 'app/views/cart/payosPayment.php';
+            } catch (Exception $e) {
+                echo "PayOS Error: " . $e->getMessage();
             }
-        }
-        
-        // Log the attempt
-        error_log("Creating PayOS payment link for order " . $order_code . " with amount " . $amount);
-        
-        // Create payment
-        $payos_data = $payos->createPaymentLink($paymentData);
-        
-        // Store PayOS data in session
-        SessionHelper::set('payos_data', $payos_data);
-        
-        // Chuyển hướng trực tiếp đến trang thanh toán PayOS
-        if (isset($payos_data['checkoutUrl'])) {
-            header('Location: ' . $payos_data['checkoutUrl']);
-            exit;
         } else {
-            // Log what we received from PayOS
-            error_log("PayOS returned data without checkoutUrl: " . json_encode($payos_data));
-            throw new Exception("Không thể tạo đường dẫn thanh toán PayOS");
+            // Handle error
+            echo "Error creating payment record";
         }
-        
     } catch (Exception $e) {
-        // Log error
-        error_log("PayOS Test Error: " . $e->getMessage());
-        
-        // Show error message
-        echo "<div class='alert alert-danger'>Lỗi khi kết nối với PayOS: " . $e->getMessage() . "</div>";
-        echo "<p><a href='/BFYL/Product' class='btn btn-primary'>Quay lại trang chủ</a></p>";
+        echo "Error: " . $e->getMessage();
     }
+}
+
+// Handle PayOS payment cancellation
+public function paymentCanceled()
+{
+    // Get any parameters passed from PayOS
+    $orderCode = $_GET['orderCode'] ?? '';
+    $status = $_GET['status'] ?? '';
+    
+    // Include the payment canceled view
+    include 'app/views/cart/payment-canceled.php';
 }
 
 }

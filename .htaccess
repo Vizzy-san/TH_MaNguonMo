@@ -6,8 +6,8 @@
     # Nếu nằm trong thư mục con, ví dụ: /BFYL/
     RewriteBase /BFYL/
     
-    # Chuyển hướng trang chủ đến Product/list
-    RewriteRule ^$ Product/list [L,R=302]
+    # Chuyển hướng trang chủ đến Product/
+    RewriteRule ^$ Product/ [L,R=302]
     
     # Route for PayOS webhook
     RewriteRule ^webhook/payos$ index.php?url=Product/payosWebhook [QSA,L]

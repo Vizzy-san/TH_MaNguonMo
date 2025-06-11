@@ -4,14 +4,17 @@ require_once('app/models/AccountModel.php');
 // Removed FavoriteModel require
 require_once('app/config/google_auth.php');
 require_once('app/helpers/SessionHelper.php');
+require_once('app/utils/JWTHandler.php');
 
 class AccountController {
     private $accountModel;
     private $db;
+    private $jwtHandler;
     
     public function __construct() {
         $this->db = (new Database())->getConnection();
         $this->accountModel = new AccountModel($this->db);
+        $this->jwtHandler = new JWTHandler();
         SessionHelper::init();
     }
     
@@ -125,7 +128,7 @@ class AccountController {
         unset($_SESSION['fullname']);
         unset($_SESSION['phone']);
         unset($_SESSION['user_email']);
-        header('Location: /BFYL/product');
+        header('Location: /BFYL/Product/');
     }
     
     public function checkLogin(){
@@ -171,7 +174,7 @@ class AccountController {
                         exit;
                     }
                     
-                    header('Location: /BFYL/product');
+                    header('Location: /BFYL/Product/');
                     exit;
                 }
                 else {
@@ -276,7 +279,7 @@ class AccountController {
                     }
                     
                     // Chuyển hướng về trang chính
-                    header('Location: /BFYL/product');
+                    header('Location: /BFYL/Product/');
                     exit;
                 }
             }
@@ -437,7 +440,7 @@ class AccountController {
                       (SELECT SUM(price * quantity) FROM order_details WHERE order_id = o.id) as total_amount
                       FROM orders o 
                       WHERE (o.user_id = :user_id) OR
-                           (o.user_id IS NULL AND o.phone = :phone) 
+                           (o.user_id IS NULL && o.phone = :phone) 
                       ORDER BY o.created_at DESC";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':user_id', $user_id);
@@ -544,5 +547,31 @@ class AccountController {
     // Method to display the access denied page
     public function accessDenied() {
         include 'app/views/account/access_denied.php';
+    }
+    
+    /**
+     * API Login - Authenticates user and returns JWT token
+     */
+    public function apiLogin() {
+        header('Content-Type: application/json');
+        
+        $data = json_decode(file_get_contents("php://input"), true);
+        $phone = $data['phone'] ?? '';
+        $password = $data['password'] ?? '';
+        
+        $account = $this->accountModel->getAccountByPhone($phone);
+        
+        if ($account && password_verify($password, $account->password)) {
+            $token = $this->jwtHandler->encode([
+                'id' => $account->id, 
+                'phone' => $account->phonenumber,
+                'role' => $account->role_name
+            ]);
+            
+            echo json_encode(['token' => $token]);
+        } else {
+            http_response_code(401);
+            echo json_encode(['message' => 'Thông tin đăng nhập không hợp lệ']);
+        }
     }
 }

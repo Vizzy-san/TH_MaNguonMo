@@ -2,21 +2,50 @@
 require_once('app/config/database.php');
 require_once('app/models/ProductModel.php');
 require_once('app/models/CategoryModel.php');
+require_once('app/utils/JWTHandler.php');
 
 class ProductApiController
 {
     private $productModel;
     private $db;
+    private $jwtHandler;
     
     public function __construct()
     {
         $this->db = (new Database())->getConnection();
         $this->productModel = new ProductModel($this->db);
+        $this->jwtHandler = new JWTHandler();
+    }
+    
+    /**
+     * Authenticate user with JWT token
+     * 
+     * @return bool True if authenticated, false otherwise
+     */
+    private function authenticate()
+    {
+        $headers = apache_request_headers();
+
+        if (isset($headers['Authorization'])) {
+            $authHeader = $headers['Authorization'];
+            $arr = explode(" ", $authHeader);
+            $jwt = $arr[1] ?? null;
+            if ($jwt) {
+                $decoded = $this->jwtHandler->decode($jwt);
+                return $decoded ? true : false;
+            }
+        }
+        return false;
     }
     
     // Lấy danh sách sản phẩm
     public function index()
     {
+        if (!$this->authenticate()) {
+            ApiRouterHelper::sendJsonResponse(['message' => 'Unauthorized'], 401);
+            return;
+        }
+        
         $products = $this->productModel->getProducts();
         ApiRouterHelper::sendJsonResponse($products);
     }
@@ -24,6 +53,11 @@ class ProductApiController
     // Lấy thông tin sản phẩm theo ID
     public function show($id)
     {
+        if (!$this->authenticate()) {
+            ApiRouterHelper::sendJsonResponse(['message' => 'Unauthorized'], 401);
+            return;
+        }
+        
         $product = $this->productModel->getProductById($id);
         if ($product) {
             ApiRouterHelper::sendJsonResponse($product);
@@ -35,6 +69,11 @@ class ProductApiController
     // Thêm sản phẩm mới
     public function store()
     {
+        if (!$this->authenticate()) {
+            ApiRouterHelper::sendJsonResponse(['message' => 'Unauthorized'], 401);
+            return;
+        }
+        
         $data = json_decode(file_get_contents("php://input"), true);
         $name = $data['name'] ?? '';
         $description = $data['description'] ?? '';
@@ -52,6 +91,11 @@ class ProductApiController
     // Cập nhật sản phẩm theo ID
     public function update($id)
     {
+        if (!$this->authenticate()) {
+            ApiRouterHelper::sendJsonResponse(['message' => 'Unauthorized'], 401);
+            return;
+        }
+        
         $data = json_decode(file_get_contents("php://input"), true);
         $name = $data['name'] ?? '';
         $description = $data['description'] ?? '';
@@ -69,6 +113,11 @@ class ProductApiController
     // Xóa sản phẩm theo ID
     public function destroy($id)
     {
+        if (!$this->authenticate()) {
+            ApiRouterHelper::sendJsonResponse(['message' => 'Unauthorized'], 401);
+            return;
+        }
+        
         $result = $this->productModel->deleteProduct($id);
         if ($result) {
             ApiRouterHelper::sendJsonResponse(['message' => 'Product deleted successfully']);

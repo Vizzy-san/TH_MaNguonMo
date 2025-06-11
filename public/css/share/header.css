@@ -250,3 +250,29 @@ body {
     max-width: 100%;
   }
 }
+
+/* Commitment Badges Styles */
+.commitment-badges {
+  font-size: 0.85rem;
+}
+
+.badge-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.badge-item i {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .commitment-badges {
+    font-size: 0.7rem;
+  }
+
+  .badge-item i {
+    font-size: 0.9rem;
+  }
+}

@@ -4,7 +4,13 @@
 // Include sidebar component
 require_once 'app/share/Sidebar.php';
 $sidebar = new Sidebar();
+
+// Include banner image component
+require_once 'app/share/bannerImage.php';
+$banner = new BannerImage();
 ?>
+
+
 
 <!-- Main container is already closed in header -->
 <div class="sidebar-wrapper">
@@ -13,6 +19,9 @@ $sidebar = new Sidebar();
 
 <!-- Main content -->
 <div class="main-content">
+    <!-- Banner Image -->
+    <?php $banner->render(); ?>
+    
     <h1>Danh sách sản phẩm</h1>
     <div class="row product-grid"> <!-- Added product-grid class for styling -->
     <?php foreach ($products as $product): ?>

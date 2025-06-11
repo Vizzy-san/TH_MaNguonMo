@@ -82,8 +82,26 @@ private function handleFileUpload() {
 
 public function index()
 {
-$products = $this->productModel->getProducts();
-include 'app/views/product/list.php';
+    // Check if user is logged in
+    if (!SessionHelper::isLoggedIn()) {
+        // User is not logged in, output JavaScript alert and redirect
+        echo '<!DOCTYPE html>
+            <html>
+            <head>
+                <title>Login Required</title>
+                <script>
+                    alert("Bạn cần đăng nhập để xem danh sách sản phẩm");
+                    window.location.href = "/BFYL/account/login";
+                </script>
+            </head>
+            <body></body>
+            </html>';
+        return;
+    }
+    
+    // User is logged in, show products as normal
+    $products = $this->productModel->getProducts();
+    include 'app/views/product/list.php';
 }
 
 public function list()
@@ -135,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $categories = (new CategoryModel($this->db))->getCategories();
         include 'app/views/product/add.php';
     } else {
-        header('Location: /BFYL/Product');
+        header('Location: /BFYL/Product/');
     }
 }
 }
@@ -180,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $edit = $this->productModel->updateProduct($id, $name, $description, $price, $category_id, $image);
     if ($edit) {
-        header('Location: /BFYL/Product');
+        header('Location: /BFYL/Product/');
     } else {
         echo "Đã xảy ra lỗi khi lưu sản phẩm.";
     }
@@ -199,7 +217,7 @@ public function delete($id)
                 unlink($this->upload_dir . $product->image);
             }
         }
-        header('Location: /BFYL/Product');
+        header('Location: /BFYL/Product/');
     } else {
         echo "Đã xảy ra lỗi khi xóa sản phẩm.";
     }

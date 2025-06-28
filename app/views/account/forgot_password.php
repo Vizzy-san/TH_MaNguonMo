@@ -1,4 +1,8 @@
 <?php include BASE_PATH . '/app/share/header.php'; ?>
+
+<!-- Close main-container div from header.php -->
+</div>
+
 <section class="vh-100 gradient-custom">
     <div class="container py-5 h-100">
         <div class="row d-flex justify-content-center align-items-center h-100">
@@ -29,6 +33,8 @@
     </div>
 </section>
 
+<!-- Re-open container for footer -->
+<div class="container">
 <!-- Forgot Password Error Toast -->
 <?php if (SessionHelper::get('forgot_error')): ?>
 <script>
@@ -71,5 +77,4 @@ document.addEventListener('DOMContentLoaded', function() {
     SessionHelper::delete('forgot_error');
 endif; 
 ?>
-
-<?php include BASE_PATH . '/app/share/footer.php'; ?> 
+<?php include BASE_PATH . '/app/share/footer.php'; ?>

@@ -32,13 +32,39 @@ spl_autoload_register(function($className) {
         return true;
     }
     
+    // Check in API controllers directory
+    $apiControllerFile = BASE_PATH . '/app/controllers/apiController/' . $className . '.php';
+    if (file_exists($apiControllerFile)) {
+        require_once $apiControllerFile;
+        return true;
+    }
+    
+    // Check in helpers directory
+    $helperFile = BASE_PATH . '/app/helpers/' . $className . '.php';
+    if (file_exists($helperFile)) {
+        require_once $helperFile;
+        return true;
+    }
+    
     return false;
 });
+
+// Include the API Router Helper
+require_once BASE_PATH . '/app/helpers/ApiRouterHelper.php';
 
 $url = $_GET['url'] ?? '';
 $url = rtrim($url, '/');
 $url = filter_var($url, FILTER_SANITIZE_URL);
 $url = explode('/', $url);
+
+// Check if this is an API request
+if (ApiRouterHelper::isApiRequest($url)) {
+    // Handle API request and exit
+    ApiRouterHelper::handleRequest($url);
+    exit;
+}
+
+// Continue with the regular routing for non-API requests
 // Kiểm tra phần đầu tiên của URL để xác định controller
 $controllerName = isset($url[0]) && $url[0] != '' ? ucfirst($url[0]) . 'Controller' :
 'ProductController';

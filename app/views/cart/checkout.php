@@ -13,12 +13,12 @@
                     <form action="/BFYL/Product/processCheckout" method="post">
                         <div class="form-group">
                             <label for="name">Họ tên</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
+                            <input type="text" class="form-control" id="name" name="name" value="<?= SessionHelper::get('fullname') ?? '' ?>" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="phone">Số điện thoại</label>
-                            <input type="text" class="form-control" id="phone" name="phone" required>
+                            <input type="text" class="form-control" id="phone" name="phone" value="<?= SessionHelper::get('phone') ?? '' ?>" required>
                         </div>
                         
                         <div class="form-group">
@@ -28,16 +28,16 @@
                         
                         <div class="form-group">
                             <label>Phương thức thanh toán</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" id="cod" value="cod">
+                            <div class="form-check payment-option">
+                                <input class="form-check-input" type="radio" name="payment_method" id="cod" value="cod" checked>
                                 <label class="form-check-label" for="cod">
                                     Thanh toán khi nhận hàng
                                 </label>
                             </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank_transfer" checked>
+                            <div class="form-check payment-option">
+                                <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank_transfer">
                                 <label class="form-check-label" for="bank_transfer">
-                                    Thanh toán bằng chuyển khoản ngân hàng
+                                    Thanh toán bằng chuyển khoản ngân hàng (QR Code)
                                 </label>
                             </div>  
                         </div>
@@ -93,4 +93,17 @@
     </div>
 </div>
 
-<?php include 'app/share/footer.php'; ?> 
+<style>
+.payment-option {
+    padding: 10px;
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.payment-option:hover {
+    background-color: #f8f9fa;
+}
+</style>
+
+<?php include 'app/share/footer.php'; ?>

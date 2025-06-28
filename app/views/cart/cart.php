@@ -24,6 +24,10 @@
                 <?php 
                 $totalAmount = 0;
                 foreach ($cart as $id => $item): 
+                    // Kiểm tra sản phẩm đã được thanh toán chưa
+                    if ($item['paid'] ?? false) {
+                        continue; // Bỏ qua sản phẩm đã thanh toán
+                    }
                     $itemTotal = $item['price'] * $item['quantity'];
                     $totalAmount += $itemTotal;
                 ?>
@@ -67,4 +71,4 @@
     <?php endif; ?>
 </div>
 
-<?php include 'app/share/footer.php'; ?> 
+<?php include 'app/share/footer.php'; ?>

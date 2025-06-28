@@ -11,12 +11,20 @@ class ComposerStaticInit89d931d28812f8617915108635969b1e
         array (
             'PayOS\\' => 6,
         ),
+        'F' => 
+        array (
+            'Firebase\\JWT\\' => 13,
+        ),
     );
 
     public static $prefixDirsPsr4 = array (
         'PayOS\\' => 
         array (
             0 => __DIR__ . '/..' . '/payos/payos/src',
+        ),
+        'Firebase\\JWT\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
     );
 

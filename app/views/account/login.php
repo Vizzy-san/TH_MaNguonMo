@@ -1,4 +1,8 @@
 <?php include BASE_PATH . '/app/share/header.php'; ?>
+
+<!-- Close main-container div from header.php -->
+</div>
+
 <section class="vh-100 gradient-custom">
     <div class="container py-5 h-100">
         <div class="row d-flex justify-content-center align-items-center h-100">
@@ -37,6 +41,51 @@
         </div>
     </div>
 </section>
+
+<!-- Re-open container for footer -->
+<div class="container">
+<!-- Login Required Toast -->
+<?php if (SessionHelper::get('login_required')): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create toast for login required message
+    const toast = document.createElement('div');
+    toast.className = 'toast show';
+    toast.role = 'alert';
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    toast.setAttribute('data-delay', '10000');
+    
+    toast.innerHTML = `
+        <div class="toast-header bg-warning text-dark">
+            <strong class="mr-auto"><i class="fas fa-exclamation-triangle"></i> Thông báo</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            <?php echo SessionHelper::get('login_required'); ?>
+        </div>
+    `;
+    
+    // Add toast to container
+    document.querySelector('.toast-container').appendChild(toast);
+    
+    // Initialize Bootstrap toast
+    $('.toast').toast({delay: 10000});
+    $('.toast').toast('show');
+    
+    // Auto remove after 10 seconds
+    setTimeout(function() {
+        toast.remove();
+    }, 10000);
+});
+</script>
+<?php 
+    // Clear message from session
+    SessionHelper::delete('login_required');
+endif; 
+?>
 
 <!-- Login Error Toast -->
 <?php if (SessionHelper::get('login_error')): ?>
@@ -123,5 +172,4 @@ document.addEventListener('DOMContentLoaded', function() {
     SessionHelper::delete('login_success');
 endif; 
 ?>
-
-<?php include BASE_PATH . '/app/share/footer.php'; ?> 
+<?php include BASE_PATH . '/app/share/footer.php'; ?>

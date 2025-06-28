@@ -1,16 +1,22 @@
 <?php
 require_once('app/config/database.php');
 require_once('app/models/AccountModel.php');
+require_once('app/models/FavoriteModel.php'); // Add back the FavoriteModel require
 require_once('app/config/google_auth.php');
 require_once('app/helpers/SessionHelper.php');
+require_once('app/utils/JWTHandler.php');
 
 class AccountController {
     private $accountModel;
     private $db;
+    private $jwtHandler;
+    private $favoriteModel; // Add favoriteModel property
     
     public function __construct() {
         $this->db = (new Database())->getConnection();
         $this->accountModel = new AccountModel($this->db);
+        $this->favoriteModel = new FavoriteModel($this->db); // Initialize favoriteModel
+        $this->jwtHandler = new JWTHandler();
         SessionHelper::init();
     }
     
@@ -124,7 +130,7 @@ class AccountController {
         unset($_SESSION['fullname']);
         unset($_SESSION['phone']);
         unset($_SESSION['user_email']);
-        header('Location: /BFYL/product');
+        header('Location: /BFYL/Product/');
     }
     
     public function checkLogin(){
@@ -160,7 +166,17 @@ class AccountController {
                     $_SESSION['user_role'] = $account->role_name;
                     $_SESSION['fullname'] = $account->fullname;
                     $_SESSION['phone'] = $account->phonenumber;
-                    header('Location: /BFYL/product');
+                    
+                    // Check if there is a redirect URL set (coming from checkout)
+                    $redirect = SessionHelper::get('redirect_after_login');
+                    if ($redirect) {
+                        // Clear the redirect URL from session
+                        SessionHelper::delete('redirect_after_login');
+                        header('Location: ' . $redirect);
+                        exit;
+                    }
+                    
+                    header('Location: /BFYL/Product/');
                     exit;
                 }
                 else {
@@ -265,7 +281,7 @@ class AccountController {
                     }
                     
                     // Chuyển hướng về trang chính
-                    header('Location: /BFYL/product');
+                    header('Location: /BFYL/Product/');
                     exit;
                 }
             }
@@ -426,7 +442,7 @@ class AccountController {
                       (SELECT SUM(price * quantity) FROM order_details WHERE order_id = o.id) as total_amount
                       FROM orders o 
                       WHERE (o.user_id = :user_id) OR
-                           (o.user_id IS NULL AND o.phone = :phone) 
+                           (o.user_id IS NULL && o.phone = :phone) 
                       ORDER BY o.created_at DESC";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':user_id', $user_id);
@@ -459,5 +475,178 @@ class AccountController {
         }
         
         include 'app/views/account/order_history.php';
+    }
+    
+    public function profile() {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        $userId = $_SESSION['user_id'];
+        $account = $this->accountModel->getAccountById($userId);
+        
+        // Get favorites from session
+        $favorites = $this->favoriteModel->getUserFavorites($userId);
+        
+        include 'app/views/account/profile.php';
+    }
+    
+    // Handle password change
+    public function changePassword() {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $userId = $_SESSION['user_id'];
+            $currentPassword = $_POST['current_password'] ?? '';
+            $newPassword = $_POST['new_password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            
+            // Validate inputs
+            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+                SessionHelper::set('profile_message', 'Vui lòng điền đầy đủ thông tin.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            if ($newPassword !== $confirmPassword) {
+                SessionHelper::set('profile_message', 'Mật khẩu mới và xác nhận mật khẩu không khớp.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            // Get current user data
+            $account = $this->accountModel->getAccountById($userId);
+            
+            // Verify current password
+            if (!password_verify($currentPassword, $account->password)) {
+                SessionHelper::set('profile_message', 'Mật khẩu hiện tại không chính xác.');
+                SessionHelper::set('profile_message_type', 'danger');
+                header('Location: /BFYL/account/profile');
+                exit;
+            }
+            
+            // Hash the new password
+            $hashedNewPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            
+            // Update password
+            if ($this->accountModel->updatePassword($userId, $hashedNewPassword)) {
+                SessionHelper::set('profile_message', 'Đổi mật khẩu thành công.');
+                SessionHelper::set('profile_message_type', 'success');
+            } else {
+                SessionHelper::set('profile_message', 'Có lỗi xảy ra khi cập nhật mật khẩu.');
+                SessionHelper::set('profile_message_type', 'danger');
+            }
+            
+            header('Location: /BFYL/account/profile');
+            exit;
+        }
+    }
+    
+    // Method to display the access denied page
+    public function accessDenied() {
+        include 'app/views/account/access_denied.php';
+    }
+    
+    // Add a product to favorites
+    public function addFavorite($productId) {
+        if (!SessionHelper::isLoggedIn()) {
+            SessionHelper::set('login_required', 'Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích.');
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        if ($this->favoriteModel->addFavorite($userId, $productId)) {
+            // Set success message
+            SessionHelper::set('profile_message', 'Đã thêm sản phẩm vào danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'success');
+        } else {
+            // Set error message
+            SessionHelper::set('profile_message', 'Không thể thêm sản phẩm vào danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'danger');
+        }
+        
+        // Redirect back to the referring page
+        $referer = $_SERVER['HTTP_REFERER'] ?? '/BFYL/Product';
+        header('Location: ' . $referer);
+    }
+    
+    // Remove a product from favorites
+    public function removeFavorite($productId) {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        if ($this->favoriteModel->removeFavorite($userId, $productId)) {
+            // Set success message
+            SessionHelper::set('profile_message', 'Đã xóa sản phẩm khỏi danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'success');
+        } else {
+            // Set error message
+            SessionHelper::set('profile_message', 'Không thể xóa sản phẩm khỏi danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'danger');
+        }
+        
+        // Check if we're coming from the profile page
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if (strpos($referer, '/BFYL/account/profile') !== false) {
+            header('Location: /BFYL/account/profile');
+        } else {
+            // Otherwise return to product page
+            header('Location: /BFYL/Product/show/' . $productId);
+        }
+    }
+    
+    /**
+     * API Login - Authenticates user and returns JWT token
+     */
+    public function apiLogin() {
+        header('Content-Type: application/json');
+        
+        $data = json_decode(file_get_contents("php://input"), true);
+        $phone = $data['phone'] ?? '';
+        $password = $data['password'] ?? '';
+        
+        $account = $this->accountModel->getAccountByPhone($phone);
+        
+        if ($account && password_verify($password, $account->password)) {
+            // Only generate tokens for admin users
+            if ($account->role_name === 'admin') {
+                $token = $this->jwtHandler->encode([
+                    'id' => $account->id, 
+                    'phone' => $account->phonenumber,
+                    'role' => $account->role_name,
+                    'is_admin' => true
+                ]);
+                
+                echo json_encode([
+                    'token' => $token,
+                    'user' => [
+                        'id' => $account->id,
+                        'phone' => $account->phonenumber,
+                        'role' => $account->role_name,
+                        'is_admin' => true
+                    ],
+                    'token_expiry' => time() + $this->jwtHandler->token_expiration
+                ]);
+            } else {
+                // User is authenticated but not an admin
+                http_response_code(403);
+                echo json_encode(['message' => 'Bạn không có quyền sử dụng tính năng này']);
+            }
+        } else {
+            // Invalid credentials
+            http_response_code(401);
+            echo json_encode(['message' => 'Thông tin đăng nhập không hợp lệ']);
+        }
     }
 }

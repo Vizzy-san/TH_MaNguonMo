@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'PayOS\\' => array($vendorDir . '/payos/payos/src'),
+    'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
 );

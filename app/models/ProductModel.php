@@ -97,5 +97,18 @@ public function getProductCount() {
     $result = $stmt->fetch(PDO::FETCH_OBJ);
     return $result->count;
 }
+public function getProductsByCategory($categoryId)
+{
+    $query = "SELECT p.id, p.name, p.description, p.price, p.image, c.name as category_name, p.category_id
+    FROM " . $this->table_name . " p
+    LEFT JOIN category c ON p.category_id = c.id
+    WHERE p.category_id = :category_id";
+
+    $stmt = $this->conn->prepare($query);
+    $stmt->bindParam(':category_id', $categoryId);
+    $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_OBJ);
+    return $result;
+}
 }
 ?>

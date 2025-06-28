@@ -99,8 +99,21 @@ public function index()
         return;
     }
     
-    // User is logged in, show products as normal
-    $products = $this->productModel->getProducts();
+    // User is logged in, check if category filter is provided
+    $categoryId = isset($_GET['category']) ? $_GET['category'] : null;
+    
+    if ($categoryId) {
+        // Get products filtered by category
+        $products = $this->productModel->getProductsByCategory($categoryId);
+        
+        // Get the category name for display
+        $categoryModel = new CategoryModel($this->db);
+        $category = $categoryModel->getCategoryById($categoryId);
+    } else {
+        // Show all products as normal
+        $products = $this->productModel->getProducts();
+    }
+    
     include 'app/views/product/list.php';
 }
 
@@ -114,7 +127,13 @@ public function show($id)
 {
     $product = $this->productModel->getProductById($id);
     
-    // Removed favorites check as per request
+    // Check if the product is in favorites if logged in
+    $isFavorite = false;
+    if (SessionHelper::isLoggedIn()) {
+        $favoriteModel = new FavoriteModel($this->db);
+        $userId = SessionHelper::get('user_id');
+        $isFavorite = $favoriteModel->isFavorite($userId, $id);
+    }
     
     if ($product) {
         include 'app/views/product/show.php';
@@ -335,130 +354,111 @@ public function processCheckout()
             return;
         }
         
-        // Bắt đầu giao dịch
-        $this->db->beginTransaction();
+        // Generate custom order ID for database (alphanumeric)
+        $order_code = $this->generateOrderId();
         
-        try {
-            // Generate custom order ID for database (alphanumeric)
-            $order_code = $this->generateOrderId();
+        // Calculate total amount
+        $totalAmount = 0;
+        foreach ($cart as $item) {
+            $totalAmount += $item['price'] * $item['quantity'];
+        }
+        
+        // For bank transfers, don't save to database yet, just store in session
+        if ($payment_method == 'payos_qr' || $payment_method == 'bank_transfer') {
+            // Store all order data in session for later database insertion
+            $_SESSION['pending_order'] = [
+                'name' => $name,
+                'phone' => $phone,
+                'address' => $address,
+                'payment_method' => $payment_method,
+                'order_code' => $order_code,
+                'user_id' => $user_id,
+                'cart' => $cart,
+                'total_amount' => $totalAmount,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
             
-            // Calculate total amount
-            $totalAmount = 0;
-            foreach ($cart as $item) {
-                $totalAmount += $item['price'] * $item['quantity'];
-            }
+            // Store customer details in session for PayOS payment
+            $_SESSION['checkout_details'] = [
+                'name' => $name,
+                'phone' => $phone,
+                'address' => $address,
+                'payment_method' => $payment_method,
+                'order_code' => $order_code,
+                'amount' => $totalAmount
+            ];
             
-            // Lưu thông tin đơn hàng vào bảng orders
-            $query = "INSERT INTO orders (name, phone, address, payment_method, order_code, user_id, created_at) 
-                      VALUES (:name, :phone, :address, :payment_method, :order_code, :user_id, NOW())";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':phone', $phone);
-            $stmt->bindParam(':address', $address);
-            $stmt->bindParam(':payment_method', $payment_method);
-            $stmt->bindParam(':order_code', $order_code);
-            $stmt->bindParam(':user_id', $user_id);
-            $stmt->execute();
-            $order_id = $this->db->lastInsertId();
+            // Redirect to testPayment without an order_id (it hasn't been saved yet)
+            header('Location: /BFYL/Product/testPayment');
+            exit;
+        }
+        
+        // For COD payments, save to database immediately
+        else {
+            // Bắt đầu giao dịch
+            $this->db->beginTransaction();
             
-            // Lưu chi tiết đơn hàng vào bảng order_details
-            foreach ($cart as $product_id => $item) {
-                $query = "INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (:order_id, :product_id, :quantity, :price)";
+            try {
+                // Lưu thông tin đơn hàng vào bảng orders
+                $query = "INSERT INTO orders (name, phone, address, payment_method, order_code, user_id, created_at, payment_status) 
+                          VALUES (:name, :phone, :address, :payment_method, :order_code, :user_id, NOW(), 'pending')";
                 $stmt = $this->db->prepare($query);
-                $stmt->bindParam(':order_id', $order_id);
-                $stmt->bindParam(':product_id', $product_id);
-                $stmt->bindParam(':quantity', $item['quantity']);
-                $stmt->bindParam(':price', $item['price']);
+                $stmt->bindParam(':name', $name);
+                $stmt->bindParam(':phone', $phone);
+                $stmt->bindParam(':address', $address);
+                $stmt->bindParam(':payment_method', $payment_method);
+                $stmt->bindParam(':order_code', $order_code);
+                $stmt->bindParam(':user_id', $user_id);
                 $stmt->execute();
-            }
-            
-            // PayOS QR processing
-            $payos_data = null;
-            if ($payment_method == 'payos_qr' || $payment_method == 'bank_transfer') {
-                // Initialize PayOS
-                $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
+                $order_id = $this->db->lastInsertId();
                 
-                // Generate PayOS compatible numeric order code
-                $payosOrderCode = $this->generatePayOSOrderCode();
-                
-                // Set up payment data
-                $paymentData = [
-                    'orderCode' => $payosOrderCode, // Use numeric order code for PayOS
-                    'amount' => intval($totalAmount), // Ensure we use the actual cart total amount, cast to integer
-                    'description' => "Thanh toán đơn hàng " . $order_code,
-                    'returnUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback",
-                    'cancelUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product"
-                ];
-                
-                // Create payment
-                try {
-                    // Create a new payment link for each transaction
-                    $payos_data = $payos->createPaymentLink($paymentData);
-                    
-                    // Store PayOS data in session for the confirmation page
-                    SessionHelper::set('payos_data', $payos_data);
-                    
-                    // Log success
-                    error_log("PayOS Success: Created payment link for order " . $order_code);
-                    
-                    // Commit giao dịch
-                    $this->db->commit();
-                    
-                    // Store order info in session
-                    $_SESSION['current_order_id'] = $order_id;
-                    
-                    // Xóa giỏ hàng sau khi đặt hàng thành công
-                    SessionHelper::delete('cart');
-                    
-                    // Always redirect directly to PayOS checkout URL for bank_transfer
-                    if (isset($payos_data['checkoutUrl'])) {
-                        header('Location: ' . $payos_data['checkoutUrl']);
-                        exit;
-                    } else {
-                        // Fallback to home page if checkoutUrl is not available
-                        header('Location: /BFYL/Product');
-                        exit;
-                    }
-                } catch (Exception $e) {
-                    // Log the error
-                    error_log("PayOS Error: " . $e->getMessage());
-                    
-                    // Still commit the transaction as we have the order
-                    $this->db->commit();
-                    
-                    // Redirect to home page
-                    header('Location: /BFYL/Product');
-                    exit;
+                // Lưu chi tiết đơn hàng vào bảng order_details
+                foreach ($cart as $product_id => $item) {
+                    $query = "INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (:order_id, :product_id, :quantity, :price)";
+                    $stmt = $this->db->prepare($query);
+                    $stmt->bindParam(':order_id', $order_id);
+                    $stmt->bindParam(':product_id', $product_id);
+                    $stmt->bindParam(':quantity', $item['quantity']);
+                    $stmt->bindParam(':price', $item['price']);
+                    $stmt->execute();
                 }
-            }
-            
-            // Xóa giỏ hàng sau khi đặt hàng thành công
-            SessionHelper::delete('cart');
-            
-            // Commit giao dịch if not PayOS (because PayOS already committed)
-            if ($payment_method != 'payos_qr' && $payment_method != 'bank_transfer') {
+                
+                // Store order info in session
+                $_SESSION['current_order_id'] = $order_id;
+                $_SESSION['order_code'] = $order_code;
+                
                 $this->db->commit();
+                
+                // Xóa giỏ hàng sau khi đặt hàng thành công
+                SessionHelper::delete('cart');
+                
+                // Redirect to order success page for COD
+                include 'app/views/cart/order-success.php';
+                exit;
+            } catch (Exception $e) {
+                // Rollback giao dịch nếu có lỗi
+                $this->db->rollBack();
+                echo "Đã xảy ra lỗi khi xử lý đơn hàng: " . $e->getMessage();
             }
-            
-            // Chuyển hướng đến trang chủ thay vì trang xác nhận đơn hàng
-            header('Location: /BFYL/Product');
-        } catch (Exception $e) {
-            // Rollback giao dịch nếu có lỗi
-            $this->db->rollBack();
-            echo "Đã xảy ra lỗi khi xử lý đơn hàng: " . $e->getMessage();
         }
     }
 }
 
-// Callback handler for PayOS payment confirmation
 public function paymentCallback()
 {
     if (isset($_GET['orderCode'])) {
         $orderCode = $_GET['orderCode'];
         $isAjax = isset($_GET['ajax']) && $_GET['ajax'] == '1';
+        $payOSOrderCode = $_SESSION['payos_order_code'] ?? null;
         
         // Check if the payment was canceled
         if (isset($_GET['cancel']) && $_GET['cancel'] == 'true') {
+            // Clear pending order data
+            unset($_SESSION['pending_order']);
+            unset($_SESSION['checkout_details']);
+            unset($_SESSION['pending_payment_id']);
+            unset($_SESSION['payos_order_code']);
+            
             // Redirect to the payment canceled page
             header('Location: /BFYL/Product/paymentCanceled?' . http_build_query($_GET));
             exit;
@@ -470,6 +470,12 @@ public function paymentCallback()
             
             // If payment was explicitly marked as CANCELLED
             if ($status == 'CANCELLED') {
+                // Clear pending order data
+                unset($_SESSION['pending_order']);
+                unset($_SESSION['checkout_details']);
+                unset($_SESSION['pending_payment_id']);
+                unset($_SESSION['payos_order_code']);
+                
                 // Redirect to the payment canceled page
                 header('Location: /BFYL/Product/paymentCanceled?' . http_build_query($_GET));
                 exit;
@@ -477,26 +483,74 @@ public function paymentCallback()
             
             // Update the order status based on PayOS callback
             if ($status == 'PAID') {
-                // Find the order by orderCode
-                $query = "SELECT id FROM orders WHERE order_code = :order_code";
-                $stmt = $this->db->prepare($query);
-                $stmt->bindParam(':order_code', $orderCode);
-                $stmt->execute();
-                $order = $stmt->fetch(PDO::FETCH_OBJ);
+                // Get pending order data from session
+                $pendingOrder = $_SESSION['pending_order'] ?? null;
+                $pendingPaymentId = $_SESSION['pending_payment_id'] ?? null;
                 
-                if ($order) {
-                    // Set success message
-                    SessionHelper::set('payment_success', 'Thanh toán thành công! Cảm ơn bạn đã đặt hàng.');
+                if ($pendingOrder && $payOSOrderCode == $orderCode) {
+                    // Now save the order to database since payment was successful
+                    $this->db->beginTransaction();
                     
-                    // Update payment status in the database
-                    $query = "UPDATE orders SET payment_status = 'paid' WHERE order_code = :order_code";
-                    $stmt = $this->db->prepare($query);
-                    $stmt->bindParam(':order_code', $orderCode);
-                    $stmt->execute();
-                    
-                    // Redirect to home page instead of confirmation page
-                    header('Location: /BFYL/Product');
-                    exit;
+                    try {
+                        // Insert into orders table
+                        $query = "INSERT INTO orders (name, phone, address, payment_method, order_code, user_id, created_at, payment_status) 
+                                VALUES (:name, :phone, :address, :payment_method, :order_code, :user_id, :created_at, 'paid')";
+                        $stmt = $this->db->prepare($query);
+                        $stmt->bindParam(':name', $pendingOrder['name']);
+                        $stmt->bindParam(':phone', $pendingOrder['phone']);
+                        $stmt->bindParam(':address', $pendingOrder['address']);
+                        $stmt->bindParam(':payment_method', $pendingOrder['payment_method']);
+                        $stmt->bindParam(':order_code', $pendingOrder['order_code']);
+                        $stmt->bindParam(':user_id', $pendingOrder['user_id']);
+                        $stmt->bindParam(':created_at', $pendingOrder['created_at']);
+                        $stmt->execute();
+                        $orderId = $this->db->lastInsertId();
+                        
+                        // Save order details
+                        foreach ($pendingOrder['cart'] as $productId => $item) {
+                            $query = "INSERT INTO order_details (order_id, product_id, quantity, price) 
+                                    VALUES (:order_id, :product_id, :quantity, :price)";
+                            $stmt = $this->db->prepare($query);
+                            $stmt->bindParam(':order_id', $orderId);
+                            $stmt->bindParam(':product_id', $productId);
+                            $stmt->bindParam(':quantity', $item['quantity']);
+                            $stmt->bindParam(':price', $item['price']);
+                            $stmt->execute();
+                        }
+                        
+                        // Update the payment record with the real order ID
+                        if ($pendingPaymentId) {
+                            $query = "UPDATE payments SET order_id = :order_id WHERE id = :payment_id";
+                            $stmt = $this->db->prepare($query);
+                            $stmt->bindParam(':order_id', $orderId);
+                            $stmt->bindParam(':payment_id', $pendingPaymentId);
+                            $stmt->execute();
+                        }
+                        
+                        $this->db->commit();
+                        
+                        // Set success message
+                        SessionHelper::set('payment_success', 'Thanh toán thành công! Cảm ơn bạn đã đặt hàng.');
+                        
+                        // Clear cart and pending order data
+                        SessionHelper::delete('cart');
+                        unset($_SESSION['pending_order']);
+                        unset($_SESSION['checkout_details']);
+                        unset($_SESSION['pending_payment_id']);
+                        unset($_SESSION['payos_order_code']);
+                        
+                        // Redirect to payment success page
+                        header('Location: /BFYL/Product/paymentSuccess?orderCode=' . $pendingOrder['order_code']);
+                        exit;
+                    } catch (Exception $e) {
+                        $this->db->rollBack();
+                        error_log("Error saving order after payment: " . $e->getMessage());
+                        
+                        // Redirect with error
+                        SessionHelper::set('payment_error', 'Thanh toán thành công nhưng có lỗi lưu đơn hàng. Vui lòng liên hệ admin.');
+                        header('Location: /BFYL/Product');
+                        exit;
+                    }
                 }
             }
         } 
@@ -509,27 +563,68 @@ public function paymentCallback()
                 // Get payment information
                 $paymentInfo = $payos->getPaymentLinkInformation($orderCode);
                 
-                // Get order ID for this payment
-                $query = "SELECT id FROM orders WHERE order_code = :order_code";
-                $stmt = $this->db->prepare($query);
-                $stmt->bindParam(':order_code', $orderCode);
-                $stmt->execute();
-                $order = $stmt->fetch(PDO::FETCH_OBJ);
-                
-                // If payment status is PAID, update the database
-                if ($paymentInfo['status'] === 'PAID' && $order) {
-                    $query = "UPDATE orders SET payment_status = 'paid' WHERE order_code = :order_code";
-                    $stmt = $this->db->prepare($query);
-                    $stmt->bindParam(':order_code', $orderCode);
-                    $stmt->execute();
+                // If payment status is PAID, process the pending order
+                if ($paymentInfo['status'] === 'PAID') {
+                    // Get pending order data from session
+                    $pendingOrder = $_SESSION['pending_order'] ?? null;
+                    $pendingPaymentId = $_SESSION['pending_payment_id'] ?? null;
+                    
+                    if ($pendingOrder && $payOSOrderCode == $orderCode) {
+                        // Now save the order to database since payment was successful
+                        $this->db->beginTransaction();
+                        
+                        try {
+                            // Insert into orders table
+                            $query = "INSERT INTO orders (name, phone, address, payment_method, order_code, user_id, created_at, payment_status) 
+                                    VALUES (:name, :phone, :address, :payment_method, :order_code, :user_id, :created_at, 'paid')";
+                            $stmt = $this->db->prepare($query);
+                            $stmt->bindParam(':name', $pendingOrder['name']);
+                            $stmt->bindParam(':phone', $pendingOrder['phone']);
+                            $stmt->bindParam(':address', $pendingOrder['address']);
+                            $stmt->bindParam(':payment_method', $pendingOrder['payment_method']);
+                            $stmt->bindParam(':order_code', $pendingOrder['order_code']);
+                            $stmt->bindParam(':user_id', $pendingOrder['user_id']);
+                            $stmt->bindParam(':created_at', $pendingOrder['created_at']);
+                            $stmt->execute();
+                            $orderId = $this->db->lastInsertId();
+                            
+                            // Save order details
+                            foreach ($pendingOrder['cart'] as $productId => $item) {
+                                $query = "INSERT INTO order_details (order_id, product_id, quantity, price) 
+                                        VALUES (:order_id, :product_id, :quantity, :price)";
+                                $stmt = $this->db->prepare($query);
+                                $stmt->bindParam(':order_id', $orderId);
+                                $stmt->bindParam(':product_id', $productId);
+                                $stmt->bindParam(':quantity', $item['quantity']);
+                                $stmt->bindParam(':price', $item['price']);
+                                $stmt->execute();
+                            }
+                            
+                            // Update the payment record with the real order ID
+                            if ($pendingPaymentId) {
+                                $query = "UPDATE payments SET order_id = :order_id WHERE id = :payment_id";
+                                $stmt = $this->db->prepare($query);
+                                $stmt->bindParam(':order_id', $orderId);
+                                $stmt->bindParam(':payment_id', $pendingPaymentId);
+                                $stmt->execute();
+                            }
+                            
+                            $this->db->commit();
+                            
+                            // Clear cart but keep order data for redirect after AJAX
+                            SessionHelper::delete('cart');
+                        } catch (Exception $e) {
+                            $this->db->rollBack();
+                            error_log("AJAX - Error saving order after payment: " . $e->getMessage());
+                        }
+                    }
                 }
                 
                 // Return payment status as JSON
                 header('Content-Type: application/json');
                 echo json_encode([
                     'status' => $paymentInfo['status'] ?? 'PENDING',
-                    'message' => $paymentInfo['status'] == 'PAID' ? 'Payment successful' : 'Payment pending',
-                    'orderId' => $order ? $order->id : null
+                    'message' => $paymentInfo['status'] == 'PAID' ? 'Payment successful' : 'Payment pending'
                 ]);
                 exit;
             } catch (Exception $e) {
@@ -549,6 +644,60 @@ public function paymentCallback()
         SessionHelper::set('payment_error', 'Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.');
         header('Location: /BFYL/Product');
     }
+}
+
+// Add new method to handle payment success page
+public function paymentSuccess()
+{
+    // Get order code from query parameters
+    $orderCode = $_GET['orderCode'] ?? '';
+    
+    if (empty($orderCode)) {
+        header('Location: /BFYL/Product');
+        exit;
+    }
+    
+    // Get order details from database
+    $query = "SELECT o.*, p.transaction_id 
+              FROM orders o 
+              LEFT JOIN payments p ON o.id = p.order_id 
+              WHERE o.order_code = :order_code 
+              LIMIT 1";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':order_code', $orderCode);
+    $stmt->execute();
+    $order = $stmt->fetch(PDO::FETCH_OBJ);
+    
+    if (!$order) {
+        header('Location: /BFYL/Product');
+        exit;
+    }
+    
+    // Get order items
+    $query = "SELECT od.*, p.name, p.image 
+              FROM order_details od 
+              LEFT JOIN product p ON od.product_id = p.id 
+              WHERE od.order_id = :order_id";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':order_id', $order->id);
+    $stmt->execute();
+    $order_items = $stmt->fetchAll(PDO::FETCH_OBJ);
+    
+    // Calculate total amount
+    $totalAmount = 0;
+    foreach ($order_items as $item) {
+        $totalAmount += $item->price * $item->quantity;
+    }
+    
+    // Set variables for the view
+    $order_code = $orderCode;
+    $transaction_id = $order->transaction_id ?? '';
+    $payment_success = SessionHelper::get('payment_success');
+    
+    // Clear cart after successful payment - moved before including the view
+    SessionHelper::delete('cart');
+    
+    include 'app/views/cart/paymentSuccess.php';
 }
 
 // Handle PayOS webhook callbacks
@@ -577,17 +726,15 @@ public function payosWebhook()
             $status = $verifiedData['status'];
             
             if ($status == 'PAID') {
-                // Update the order in the database
-                $query = "UPDATE orders SET payment_status = 'paid' WHERE order_code = :order_code";
-                $stmt = $this->db->prepare($query);
-                $stmt->bindParam(':order_code', $orderCode);
-                $result = $stmt->execute();
+                // Use a queue system or log for asynchronous processing
+                // In a real system, you should implement a robust queue system
+                // For this example, we'll log the payment for later processing
+                $logFile = 'payos_successful_payments.log';
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " - Order Code: $orderCode - Status: $status\n", FILE_APPEND);
                 
-                if ($result) {
-                    http_response_code(200);
-                    echo json_encode(['status' => 'success', 'message' => 'Payment processed successfully']);
-                    return;
-                }
+                http_response_code(200);
+                echo json_encode(['status' => 'success', 'message' => 'Payment logged for processing']);
+                return;
             }
         }
         
@@ -611,27 +758,46 @@ public function testPayment() {
         require_once 'app/models/PaymentModel.php';
         $paymentModel = new PaymentModel();
         
-        // Example test payment
-        $orderId = isset($_SESSION['order_id']) ? $_SESSION['order_id'] : 1;
-        $amount = 10000; // Example amount (100.00 VND)
-        $description = "Test payment with PayOS";
+        // Get pending order from session
+        $pendingOrder = $_SESSION['pending_order'] ?? null;
+        
+        // Get checkout details from session
+        $checkoutDetails = $_SESSION['checkout_details'] ?? null;
+        $amount = $checkoutDetails['amount'] ?? 10000; // Use order amount or default to 10000
+        
+        // Truncate description to max 25 characters to comply with PayOS requirements
+        $orderCodeText = $checkoutDetails['order_code'] ?? 'Test';
+        $description = "Đơn #" . $orderCodeText;
+        $description = mb_substr($description, 0, 25); // Ensure limit of 25 characters
+        
         $customerId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
         
-        $paymentId = $paymentModel->createPayment($orderId, $amount, $description, $customerId);
+        // Create temporary payment record without actual order_id
+        // We'll use 0 as a placeholder since the order doesn't exist yet
+        $tempOrderId = 0;
+        $paymentId = $paymentModel->createPayment($tempOrderId, $amount, $description, $customerId);
         
         if ($paymentId) {
+            // Save payment ID in session to link with order later
+            $_SESSION['pending_payment_id'] = $paymentId;
+            
             // Initialize PayOS
             $payos = new PayOS(PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY);
             
             // Generate compatible numeric order code
             $orderCode = $this->generatePayOSOrderCode();
+            // Make sure to assign to $order_code for the view
+            $order_code = $checkoutDetails['order_code'] ?? $this->generateOrderId();
+            
+            // Store the orderCode in session for callback reference
+            $_SESSION['payos_order_code'] = $orderCode;
             
             $paymentData = [
-                'orderCode' => $orderCode, // Already an integer, no need to cast
+                'orderCode' => $orderCode,
                 'amount' => $amount,
                 'description' => $description,
                 'returnUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback",
-                'cancelUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product"
+                'cancelUrl' => "http://" . $_SERVER['HTTP_HOST'] . "/BFYL/Product/paymentCallback?cancel=true&orderCode=" . $orderCode
             ];
             
             // Create actual PayOS payment link
@@ -639,7 +805,8 @@ public function testPayment() {
                 $payos_data = $payos->createPaymentLink($paymentData);
                 
                 // Store the data for the view and update our payment record
-                $transactionId = $payos_data['paymentLinkId'] ?? 'unknown';
+                // Use PayOS orderCode as transaction_id instead of paymentLinkId
+                $transactionId = (string)$orderCode; // Convert to string for compatibility
                 $qrCode = $payos_data['qrCode'] ?? '';
                 $checkoutUrl = $payos_data['checkoutUrl'] ?? '';
                 $deeplink = $payos_data['deeplink'] ?? '';
@@ -652,17 +819,32 @@ public function testPayment() {
                 $qr_code = $qrCode;
                 $checkout_url = $checkoutUrl;
                 
+                // Setup order for the view
+                $order = null;
+                if ($checkoutDetails) {
+                    $order = (object) [
+                        'name' => $checkoutDetails['name'],
+                        'phone' => $checkoutDetails['phone'],
+                        'address' => $checkoutDetails['address']
+                    ];
+                    $payment_text = 'Thanh toán bằng chuyển khoản ngân hàng';
+                }
+                
+                // Get cart items from session for product details
+                $cart_items = SessionHelper::get('cart') ?? [];
+                
                 // Include the view directly instead of using view() method
                 include 'app/views/cart/payosPayment.php';
             } catch (Exception $e) {
-                echo "PayOS Error: " . $e->getMessage();
+                error_log("PayOS Create Payment Link Error: " . $e->getMessage());
+                echo "Có lỗi khi tạo liên kết thanh toán. Vui lòng thử lại.";
             }
         } else {
-            // Handle error
-            echo "Error creating payment record";
+            echo "Có lỗi khi tạo đơn hàng. Vui lòng thử lại.";
         }
     } catch (Exception $e) {
-        echo "Error: " . $e->getMessage();
+        error_log("Error in testPayment: " . $e->getMessage());
+        echo "Có lỗi xảy ra. Vui lòng thử lại.";
     }
 }
 
@@ -676,6 +858,5 @@ public function paymentCanceled()
     // Include the payment canceled view
     include 'app/views/cart/payment-canceled.php';
 }
-
 }
 ?>

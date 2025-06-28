@@ -14,6 +14,7 @@ href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
 rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 <link rel="stylesheet" href="/BFYL/public/css/share/header.css">
+<link rel="stylesheet" href="/BFYL/public/css/product.css">
 <script>
 function logout() {
     // Remove JWT token if exists
@@ -31,6 +32,9 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 </head>
 <body>
+<!-- Add toast container right after body tag -->
+<div class="toast-container"></div>
+
 <!-- Top bar with scrolling text -->
 <div class="top-bar">
     <div class="scrolling-text">
@@ -93,10 +97,6 @@ navigation">
 </a>
 
 <!-- Add PayOS Test Payment Link -->
-<a class="nav-link" href="/BFYL/Product/testPayment">
-    <i class="fas fa-credit-card"></i> Test PayOS
-</a>
-
 <!-- User Authentication Links -->
 <?php if(SessionHelper::isLoggedIn() || isset($_COOKIE['jwtToken'])): ?>
     <!-- User account dropdown -->

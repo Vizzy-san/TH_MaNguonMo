@@ -4,6 +4,8 @@ require_once('app/models/ProductModel.php');
 require_once('app/models/CategoryModel.php');
 require_once('app/models/AccountModel.php');
 require_once('app/helpers/SessionHelper.php');
+require_once('app/controllers/apiController/ProductApiController.php');
+require_once('app/controllers/apiController/CategoryApiController.php');
 
 class AdminController {
     private $db;
@@ -110,6 +112,25 @@ class AdminController {
     public function content() {
         $contents = $this->getContents();
         include 'app/views/admin/content.php';
+    }
+    
+    // API Testing interface
+    public function apitesting() {
+        // Get all available endpoints
+        $endpoints = [
+            'products' => [
+                ['method' => 'GET', 'endpoint' => '/BFYL/api/products', 'description' => 'Get all products'],
+                ['method' => 'GET', 'endpoint' => '/BFYL/api/products/{id}', 'description' => 'Get product by ID'],
+                ['method' => 'POST', 'endpoint' => '/BFYL/api/products', 'description' => 'Create new product'],
+                ['method' => 'PUT', 'endpoint' => '/BFYL/api/products/{id}', 'description' => 'Update product'],
+                ['method' => 'DELETE', 'endpoint' => '/BFYL/api/products/{id}', 'description' => 'Delete product'],
+            ],
+            'categories' => [
+                ['method' => 'GET', 'endpoint' => '/BFYL/api/categories', 'description' => 'Get all categories']
+            ]
+        ];
+        
+        include 'app/views/admin/api_testing.php';
     }
     
     // Helper method to get recent orders

@@ -26,14 +26,31 @@ class ProductApiController
     {
         $headers = apache_request_headers();
 
-        if (isset($headers['Authorization'])) {
-            $authHeader = $headers['Authorization'];
+        // Debug log to check received headers
+        error_log("Auth headers received: " . json_encode($headers));
+
+        if (isset($headers['Authorization']) || isset($headers['authorization'])) {
+            // Account for different server environments which might normalize header keys
+            $authHeader = $headers['Authorization'] ?? $headers['authorization'];
             $arr = explode(" ", $authHeader);
-            $jwt = $arr[1] ?? null;
+            
+            // Ensure Bearer token format
+            if (count($arr) != 2 || $arr[0] != 'Bearer') {
+                error_log("Invalid Authorization header format");
+                return false;
+            }
+            
+            $jwt = $arr[1];
             if ($jwt) {
                 $decoded = $this->jwtHandler->decode($jwt);
-                return $decoded ? true : false;
+                if ($decoded) {
+                    return true;
+                } else {
+                    error_log("JWT token validation failed");
+                }
             }
+        } else {
+            error_log("No Authorization header present");
         }
         return false;
     }

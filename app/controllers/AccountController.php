@@ -1,7 +1,7 @@
 <?php
 require_once('app/config/database.php');
 require_once('app/models/AccountModel.php');
-// Removed FavoriteModel require
+require_once('app/models/FavoriteModel.php'); // Add back the FavoriteModel require
 require_once('app/config/google_auth.php');
 require_once('app/helpers/SessionHelper.php');
 require_once('app/utils/JWTHandler.php');
@@ -10,10 +10,12 @@ class AccountController {
     private $accountModel;
     private $db;
     private $jwtHandler;
+    private $favoriteModel; // Add favoriteModel property
     
     public function __construct() {
         $this->db = (new Database())->getConnection();
         $this->accountModel = new AccountModel($this->db);
+        $this->favoriteModel = new FavoriteModel($this->db); // Initialize favoriteModel
         $this->jwtHandler = new JWTHandler();
         SessionHelper::init();
     }
@@ -483,7 +485,8 @@ class AccountController {
         $userId = $_SESSION['user_id'];
         $account = $this->accountModel->getAccountById($userId);
         
-        // Removed favorites functionality as per request
+        // Get favorites from session
+        $favorites = $this->favoriteModel->getUserFavorites($userId);
         
         include 'app/views/account/profile.php';
     }
@@ -549,6 +552,60 @@ class AccountController {
         include 'app/views/account/access_denied.php';
     }
     
+    // Add a product to favorites
+    public function addFavorite($productId) {
+        if (!SessionHelper::isLoggedIn()) {
+            SessionHelper::set('login_required', 'Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích.');
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        if ($this->favoriteModel->addFavorite($userId, $productId)) {
+            // Set success message
+            SessionHelper::set('profile_message', 'Đã thêm sản phẩm vào danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'success');
+        } else {
+            // Set error message
+            SessionHelper::set('profile_message', 'Không thể thêm sản phẩm vào danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'danger');
+        }
+        
+        // Redirect back to the referring page
+        $referer = $_SERVER['HTTP_REFERER'] ?? '/BFYL/Product';
+        header('Location: ' . $referer);
+    }
+    
+    // Remove a product from favorites
+    public function removeFavorite($productId) {
+        if (!SessionHelper::isLoggedIn()) {
+            header('Location: /BFYL/account/login');
+            exit;
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        if ($this->favoriteModel->removeFavorite($userId, $productId)) {
+            // Set success message
+            SessionHelper::set('profile_message', 'Đã xóa sản phẩm khỏi danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'success');
+        } else {
+            // Set error message
+            SessionHelper::set('profile_message', 'Không thể xóa sản phẩm khỏi danh sách yêu thích.');
+            SessionHelper::set('profile_message_type', 'danger');
+        }
+        
+        // Check if we're coming from the profile page
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if (strpos($referer, '/BFYL/account/profile') !== false) {
+            header('Location: /BFYL/account/profile');
+        } else {
+            // Otherwise return to product page
+            header('Location: /BFYL/Product/show/' . $productId);
+        }
+    }
+    
     /**
      * API Login - Authenticates user and returns JWT token
      */
@@ -562,14 +619,32 @@ class AccountController {
         $account = $this->accountModel->getAccountByPhone($phone);
         
         if ($account && password_verify($password, $account->password)) {
-            $token = $this->jwtHandler->encode([
-                'id' => $account->id, 
-                'phone' => $account->phonenumber,
-                'role' => $account->role_name
-            ]);
-            
-            echo json_encode(['token' => $token]);
+            // Only generate tokens for admin users
+            if ($account->role_name === 'admin') {
+                $token = $this->jwtHandler->encode([
+                    'id' => $account->id, 
+                    'phone' => $account->phonenumber,
+                    'role' => $account->role_name,
+                    'is_admin' => true
+                ]);
+                
+                echo json_encode([
+                    'token' => $token,
+                    'user' => [
+                        'id' => $account->id,
+                        'phone' => $account->phonenumber,
+                        'role' => $account->role_name,
+                        'is_admin' => true
+                    ],
+                    'token_expiry' => time() + $this->jwtHandler->token_expiration
+                ]);
+            } else {
+                // User is authenticated but not an admin
+                http_response_code(403);
+                echo json_encode(['message' => 'Bạn không có quyền sử dụng tính năng này']);
+            }
         } else {
+            // Invalid credentials
             http_response_code(401);
             echo json_encode(['message' => 'Thông tin đăng nhập không hợp lệ']);
         }

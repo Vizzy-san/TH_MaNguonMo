@@ -20,7 +20,7 @@
                     </p>
                     
                     <div class="mt-4">
-                        <a href="/BFYL/product" class="btn btn-primary px-4 py-2">
+                        <a href="/BFYL/Product" class="btn btn-primary px-4 py-2">
                             <i class="fas fa-home mr-2"></i> Go to Homepage
                         </a>
                     </div>

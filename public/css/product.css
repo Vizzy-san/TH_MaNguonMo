@@ -1,0 +1,25 @@
+/* Product card with clickable area */
+.card-link {
+  display: block;
+  color: inherit;
+}
+
+.card-link:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.product-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-link:hover .product-card {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+/* Make sure Add to Cart button works independently */
+.add-to-cart {
+  position: relative;
+  z-index: 2;
+}

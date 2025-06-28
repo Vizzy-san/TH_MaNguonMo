@@ -112,6 +112,11 @@
                             <i class="fas fa-file-alt mr-2"></i> Content
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'apitesting') !== false ? 'active' : ''; ?>" href="/BFYL/admin/apitesting">
+                            <i class="fas fa-code mr-2"></i> API Testing
+                        </a>
+                    </li>
                  
                 </ul>
             </div>
@@ -126,4 +131,4 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
-</html> 
+</html>

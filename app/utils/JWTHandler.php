@@ -2,16 +2,18 @@
 require_once 'vendor/autoload.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Firebase\JWT\ExpiredException;
+use Firebase\JWT\SignatureInvalidException;
 
 class JWTHandler
 {
     private $secret_key;
-    private $token_expiration;
+    public $token_expiration; // Changed from private to public for accessibility
 
     public function __construct()
     {
         // For enhanced security, consider moving this to an environment variable or config file
-        $this->secret_key = "BFYL"; 
+        $this->secret_key = "BFYL_SECRET_KEY_SECURE_STRING_2024"; // Using a stronger secret key
         $this->token_expiration = 3600; // Token valid for 1 hour
     }
 
@@ -48,6 +50,12 @@ class JWTHandler
         try {
             $decoded = JWT::decode($jwt, new Key($this->secret_key, 'HS256'));
             return (array) $decoded->data;
+        } catch (ExpiredException $e) {
+            error_log('JWT Token Expired: ' . $e->getMessage());
+            return null;
+        } catch (SignatureInvalidException $e) {
+            error_log('JWT Invalid Signature: ' . $e->getMessage());
+            return null;
         } catch (\Exception $e) {
             error_log('JWT Decode Error: ' . $e->getMessage());
             return null;
